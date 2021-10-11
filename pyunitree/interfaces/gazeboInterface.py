@@ -115,13 +115,15 @@ class GazeboInterface:
                 actual_time = time.perf_counter() - initial_time
                 try:
                     command = self.__shared.cmd
+
+
+                    if actual_time - last_tick >= 1/self.update_rate:
+                        self.moveStateToShared()
+                        self.sendCommand(command)
+                        last_tick = actual_time
+                        
                 except BrokenPipeError:
                     break
-
-                if actual_time - last_tick >= 1/self.update_rate:
-                    self.moveStateToShared()
-                    self.sendCommand(command)
-                    last_tick = actual_time
 
         except KeyboardInterrupt:
             print('Exit')
