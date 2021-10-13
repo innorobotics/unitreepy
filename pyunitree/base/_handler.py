@@ -47,7 +47,8 @@ class RobotHandler(LowLevelParser):
         self.state.gyro = self.gyro
         self.state.ticker = self.tick
 
-        self.state.footforce = self.foot_force_est
+        self.state.footforce = self.foot_force
+        self.state.footforceEst = self.foot_force_est
         
 
 

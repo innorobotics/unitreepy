@@ -35,5 +35,5 @@ while robot.state.time - initial_time < 5:
     
 robot.move_to_init()
 
-commsInterface.stop()
 robot.stop()
+commsInterface.stop()

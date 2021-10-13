@@ -63,6 +63,7 @@ class GazeboInterface:
         self.velocity = [0]*12
         self.footForces = [[0]*3]*4
         self.imu = [0]*10
+        self.time = 0
 
         self.__shared = Manager().Namespace()
         self.__shared.position = [0]*12
@@ -70,6 +71,7 @@ class GazeboInterface:
         self.__shared.footForces = [[0]*3]*4
         self.__shared.imu = [0]*10
         self.__shared.jointNames = None
+        self.__shared.time = 0
         
         self.__shared.handlerIsWorking = False
 
@@ -93,7 +95,7 @@ class GazeboInterface:
         
             self.imuSub = rospy.Subscriber("/trunk_imu", Imu, self.imuVectorCallback)
 
-            self.footForceSubs = [rospy.Subscriber(name, WrenchStamped,lambda msg: self.footForceVectorCallback(idx,msg)) 
+            self.footForceSubs = [rospy.Subscriber(name, WrenchStamped,self.footForceVectorCallback) 
                                                                 for idx,name in enumerate(GazeboInterface.footContactNames)]
 
             self.servoSubs = rospy.Subscriber("/a1_gazebo/joint_states", JointState, self.jointStatesVectorCallback) 
@@ -144,12 +146,16 @@ class GazeboInterface:
         self.__shared.position = self.position
         self.__shared.velocity = self.velocity
         self.__shared.jointNames = self.jointNames
+        self.__shared.time = self.time
 
     def imuVectorCallback(self,msg):
         self.imu = self.parser.vectorizeImuMsg(msg)
+        self.time = rospy.get_time()
 
-    def footForceVectorCallback(self,legIdx,msg):
-        self.footForces[legIdx] = self.parser.vectorizeEeForce(msg)
+    def footForceVectorCallback(self,msg):
+        topic = msg._connection_header["topic"]
+        footIdx = self.footContactNames.index(topic)
+        self.footForces[footIdx] = self.parser.vectorizeEeForce(msg)
 
     def jointStatesVectorCallback(self,msg):
         self.position = msg.position
@@ -197,6 +203,7 @@ class GazeboInterface:
         for i in range(4):
             lowState.eeForce[i],lowState.footForce[i] = self.parser.parseEeForceVector(footForces[i])
         
+        lowState.tick = self.__shared.time
         return lowState
 
     def getPitchRoll(self):
