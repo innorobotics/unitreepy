@@ -55,4 +55,6 @@ class GazeboMsgParser:
         eeForce.x = vector[0]
         eeForce.y = vector[1]
         eeForce.z = vector[2]
-        return eeForce , vector[2]  #Foot force is taken as it's z component
+
+        footForce = vector[2]
+        return eeForce , footForce   #Foot force is taken as it's z component

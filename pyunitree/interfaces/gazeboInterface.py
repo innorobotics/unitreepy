@@ -1,13 +1,14 @@
 from pyunitree.parsers.gazebo import GazeboMsgParser
 
 import rospy
-from unitree_legged_msgs.msg import LowState,MotorCmd
+from unitree_legged_msgs.msg import LowState,MotorCmd,MotorState
 from sensor_msgs.msg import Imu,JointState
 from geometry_msgs.msg import WrenchStamped
 
 from multiprocessing import Process, Manager
 from logging import info
 import time
+import numpy as np
 
 from scipy.spatial.transform import Rotation as R
 
@@ -64,6 +65,7 @@ class GazeboInterface:
         self.footForces = [[0]*3]*4
         self.imu = [0]*10
         self.time = 0
+        self.initTime = 0
 
         self.__shared = Manager().Namespace()
         self.__shared.position = [0]*12
@@ -74,10 +76,9 @@ class GazeboInterface:
         self.__shared.time = 0
         
         self.__shared.handlerIsWorking = False
-
         self.__shared.cmd = [0]*60
 
-        self.handlerProc = Process(target=self.__handler)
+        self.handlerProc = Process(target=self.__handler,daemon=True)
         self.handlerProc.start()
 
         while not self.__shared.handlerIsWorking:
@@ -91,18 +92,22 @@ class GazeboInterface:
         
     def __handler(self):
         try:
-            self.node = rospy.init_node('unitreepy_node', anonymous=True)
+            self.node = rospy.init_node('unitreepy_node')
         
             self.imuSub = rospy.Subscriber("/trunk_imu", Imu, self.imuVectorCallback)
 
-            self.footForceSubs = [rospy.Subscriber(name, WrenchStamped,self.footForceVectorCallback) 
+            self.footForceSubs = [rospy.Subscriber(name, WrenchStamped, self.footForceVectorCallback,(idx)) 
                                                                 for idx,name in enumerate(GazeboInterface.footContactNames)]
 
             self.servoSubs = rospy.Subscriber("/a1_gazebo/joint_states", JointState, self.jointStatesVectorCallback) 
             
+            self.motorSubs = [rospy.Subscriber(name+"/state", MotorState, self.motorVectorCallback,(idx)) 
+                                                                for idx,name in enumerate(GazeboInterface.controllerNames)]
+
             self.servoPublishers = [rospy.Publisher(controllerName+"/command", MotorCmd) 
                                                                 for controllerName in GazeboInterface.controllerNames]
 
+            self.initTime = rospy.get_time()
 
             info("Unitreepy Gazebo listener: Attempting to receive initial position from Gazebo")
             while self.jointNames==None:
@@ -150,19 +155,22 @@ class GazeboInterface:
         self.__shared.jointNames = self.jointNames
         self.__shared.time = self.time
 
+    def motorVectorCallback(self,msg,idx):
+        #self.position[idx] = msg.q
+        self.velocity[idx] = msg.dq
+
     def imuVectorCallback(self,msg):
         self.imu = self.parser.vectorizeImuMsg(msg)
-        self.time = rospy.get_time()
+        self.time = rospy.get_time()-self.initTime
 
-    def footForceVectorCallback(self,msg):
-        topic = msg._connection_header["topic"]
-        footIdx = self.footContactNames.index(topic)
+    def footForceVectorCallback(self,msg,footIdx):
         self.footForces[footIdx] = self.parser.vectorizeEeForce(msg)
 
     def jointStatesVectorCallback(self,msg):
         self.position = msg.position
-        self.velocity = msg.velocity
+        #self.velocity = msg.velocity
         self.jointNames = msg.name
+
 
     def send(self,cmd):
         self.__shared.cmd = cmd
@@ -206,6 +214,7 @@ class GazeboInterface:
             lowState.eeForce[i],lowState.footForce[i] = self.parser.parseEeForceVector(footForces[i])
         
         lowState.tick = self.__shared.time
+
         return lowState
 
     def getPitchRoll(self):
