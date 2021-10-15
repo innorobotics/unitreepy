@@ -1,5 +1,6 @@
 from pyunitree.parsers.gazebo import GazeboMsgParser
-
+from pyunitree.robots.a1.constants import INIT_ANGLES,POSITION_GAINS,DAMPING_GAINS
+from pyunitree.utils._pos_profiles import p2p_cos_profile
 import rospy
 from unitree_legged_msgs.msg import LowState,MotorCmd,MotorState
 from sensor_msgs.msg import Imu,JointState
@@ -68,22 +69,32 @@ class GazeboInterface:
         self.initTime = 0
 
         self.__shared = Manager().Namespace()
-        self.__shared.position = [0]*12
-        self.__shared.velocity = [0]*12
+        self.__shared.joint_angles = [0]*12
+        self.__shared.joint_speed = [0]*12
+        self.__shared.footforce =  [0]*4
         self.__shared.footForces = [[0]*3]*4
         self.__shared.imu = [0]*10
         self.__shared.jointNames = None
-        self.__shared.time = 0
-        
+        self.__shared.ticker = 0
+
+        self.__shared.quaternion = self.imu[:4]
+        self.__shared.gyro = self.imu[4:7]
+        self.__shared.accel = self.imu[7:10]
+
         self.__shared.handlerIsWorking = False
         self.__shared.cmd = [0]*60
 
+    
+    def sta(self):
+        return self.__shared.position
+
+    def start(self):
         self.handlerProc = Process(target=self.__handler,daemon=True)
         self.handlerProc.start()
 
         while not self.__shared.handlerIsWorking:
             time.sleep(0.01)
-    
+
     def __del__(self):
         self.stop()
         
@@ -123,7 +134,6 @@ class GazeboInterface:
                 try:
                     command = self.__shared.cmd
 
-
                     if actual_time - last_tick >= 1/self.update_rate:
                         self.moveStateToShared()
                         self.sendCommand(command)
@@ -147,30 +157,55 @@ class GazeboInterface:
             motorCmd.tau=command[motorId * 5+4]
             self.servoPublishers[motorId].publish(motorCmd)
 
-    def moveStateToShared(self):
-        self.__shared.imu = self.imu
-        self.__shared.footForces = self.footForces
-        self.__shared.position = self.position
-        self.__shared.velocity = self.velocity
-        self.__shared.jointNames = self.jointNames
-        self.__shared.time = self.time
+    def buildCommand(self,
+                      desired_pos=np.zeros(12),
+                      desired_vel=np.zeros(12),
+                      desired_torque=np.zeros(12),
+                      position_gains=np.zeros(12),
+                      damping_gains=np.zeros(12)):
 
+        command = np.zeros(60)
+
+        for motor_id in range(12):
+            command[motor_id * 5] = desired_pos[motor_id]
+            command[motor_id * 5 + 1] = position_gains[motor_id]
+            command[motor_id * 5 + 2] = desired_vel[motor_id]
+            command[motor_id * 5 + 3] = damping_gains[motor_id]
+            command[motor_id * 5 + 4] = desired_torque[motor_id]
+
+        return command
+
+    def getSharedState(self):
+        return self.__shared
+
+    def moveStateToShared(self):
+        self.__shared.quaternion = self.imu[:4]
+        self.__shared.gyro = self.imu[4:7]
+        self.__shared.accel = self.imu[7:10]
+        self.__shared.footForces = self.footForces
+        self.__shared.joint_angles = self.position
+        self.__shared.joint_speed = self.velocity
+        self.__shared.jointNames = self.jointNames
+        self.__shared.ticker = self.time
+
+        self.__shared.footforce = [force[2] for force in self.footForces]
+        
     def motorVectorCallback(self,msg,idx):
-        #self.position[idx] = msg.q
+        self.position[idx] = msg.q
         self.velocity[idx] = msg.dq
 
     def imuVectorCallback(self,msg):
         self.imu = self.parser.vectorizeImuMsg(msg)
         self.time = rospy.get_time()-self.initTime
+        self.jointNames = "A"
 
     def footForceVectorCallback(self,msg,footIdx):
         self.footForces[footIdx] = self.parser.vectorizeEeForce(msg)
 
     def jointStatesVectorCallback(self,msg):
-        self.position = msg.position
+        #self.position = msg.position
         #self.velocity = msg.velocity
-        self.jointNames = msg.name
-
+        pass
 
     def send(self,cmd):
         self.__shared.cmd = cmd
@@ -222,3 +257,27 @@ class GazeboInterface:
         r = R.from_quat(orientation)
         rpy_angles = r.as_euler("xyz")
         return rpy_angles[1],rpy_angles[2]
+
+    def set_torques(self,desiredTorques):
+        self.send(self.buildCommand(desired_torque=desiredTorques))
+
+    def set_angles(self,desiredPos):
+        self.send(self.buildCommand(desired_pos=desiredPos,position_gains=POSITION_GAINS,damping_gains=DAMPING_GAINS))
+
+    def move_to(self, desired_position, terminal_time=3):
+        """Move to desired position with poitn to point """
+        initial_position = self.__shared.joint_angles
+        init_time = time.perf_counter()
+        actual_time = 0
+
+        while actual_time <= terminal_time:
+            actual_time = time.perf_counter() - init_time
+            position, _ = p2p_cos_profile(actual_time,
+                                          initial_pose=initial_position,
+                                          final_pose=desired_position,
+                                          terminal_time=terminal_time)
+            self.set_angles(position)
+                
+    def move_to_init(self):
+        self.move_to(np.array(INIT_ANGLES))
+
