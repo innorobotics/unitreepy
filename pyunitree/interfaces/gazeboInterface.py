@@ -119,6 +119,8 @@ class GazeboInterface:
                                                                 for controllerName in GazeboInterface.controllerNames]
 
             self.initTime = rospy.get_time()
+            
+            rate = rospy.Rate(self.update_rate)
 
             info("Unitreepy Gazebo listener: Attempting to receive initial position from Gazebo")
             while self.jointNames==None:
@@ -134,10 +136,9 @@ class GazeboInterface:
                 try:
                     command = self.__shared.cmd
 
-                    if actual_time - last_tick >= 1/self.update_rate:
-                        self.moveStateToShared()
-                        self.sendCommand(command)
-                        last_tick = actual_time
+                    self.moveStateToShared()
+                    self.sendCommand(command)
+                    rate.sleep()
                         
                 except BrokenPipeError:
                     break
@@ -179,16 +180,16 @@ class GazeboInterface:
         return self.__shared
 
     def moveStateToShared(self):
-        self.__shared.quaternion = self.imu[:4]
-        self.__shared.gyro = self.imu[4:7]
-        self.__shared.accel = self.imu[7:10]
-        self.__shared.footForces = self.footForces
-        self.__shared.joint_angles = self.position
-        self.__shared.joint_speed = self.velocity
+        self.__shared.quaternion = np.array(self.imu[:4])
+        self.__shared.gyro = np.array(self.imu[4:7])
+        self.__shared.accel = np.array(self.imu[7:10])
+        self.__shared.footForces = np.array(self.footForces)
+        self.__shared.joint_angles = np.array(self.position)
+        self.__shared.joint_speed = np.array(self.velocity)
         self.__shared.jointNames = self.jointNames
         self.__shared.ticker = self.time
 
-        self.__shared.footforce = [force[2] for force in self.footForces]
+        self.__shared.footforce = np.array([force[2] for force in self.footForces])
         
     def motorVectorCallback(self,msg,idx):
         self.position[idx] = msg.q
