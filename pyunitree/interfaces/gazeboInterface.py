@@ -7,7 +7,7 @@ from unitree_legged_msgs.msg import LowState,MotorCmd,MotorState
 from sensor_msgs.msg import Imu,JointState
 from geometry_msgs.msg import WrenchStamped
 
-from multiprocessing import Process, Manager
+from multiprocessing import Process, Manager, RawArray
 from logging import info
 import time
 import numpy as np
@@ -86,6 +86,10 @@ class GazeboInterface:
 
         self.__shared.handlerIsWorking = False
         self.__shared.cmd = [0]*60
+        self.rawState = RawArray("d",39)
+        data = np.zeros(39)
+        rawState = np.frombuffer(self.rawState, dtype=np.float64)
+        np.copyto(rawState, data)
 
     
     def start(self):
@@ -194,7 +198,10 @@ class GazeboInterface:
         self.__shared.footForces = np.array(self.footForces)
         
         compressedState = np.hstack([self.imu,footforce,self.position,self.velocity])
-        self.__shared.stateCompressed = np.append(compressedState,[self.time])
+        compressedState = np.append(compressedState,[self.time])
+        self.__shared.stateCompressed = compressedState
+        rawState = np.frombuffer(self.rawState, dtype=np.float64)
+        np.copyto(rawState, compressedState)
         
     def motorVectorCallback(self,msg,idx):
         self.position[idx] = msg.q
