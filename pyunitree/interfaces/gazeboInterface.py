@@ -73,7 +73,6 @@ class GazeboInterface:
         self.__shared = Manager().Namespace()
         self.__shared.joint_angles = [0]*12
 
-
         self.__shared.handlerIsWorking = False
         self.__shared.cmd = [0]*60
 
@@ -105,7 +104,7 @@ class GazeboInterface:
             self.footForceSubs = [rospy.Subscriber(name, WrenchStamped, self.footForceVectorCallback,(idx)) 
                                                                 for idx,name in enumerate(GazeboInterface.footContactNames)]
 
-            self.servoSubs = rospy.Subscriber("/a1_gazebo/joint_states", JointState, self.jointStatesVectorCallback) 
+            #self.servoSubs = rospy.Subscriber("/a1_gazebo/joint_states", JointState, self.jointStatesVectorCallback) 
             
             self.motorSubs = [rospy.Subscriber(name+"/state", MotorState, self.motorVectorCallback,(idx)) 
                                                                 for idx,name in enumerate(GazeboInterface.controllerNames)]
@@ -193,25 +192,34 @@ class GazeboInterface:
     def footForceVectorCallback(self,msg,footIdx):
         self.footForces[footIdx] = self.parser.vectorizeEeForce(msg)
 
-    def jointStatesVectorCallback(self,msg):
-        #self.position = msg.position
-        #self.velocity = msg.velocity
-        pass
-
     def send(self,cmd):
         self.__shared.cmd = cmd
 
-    def receive(self):
-        try:
-            lowState = LowState()
-            lowState = self.buildLowState()
-        except:
-            raise RuntimeError("Unitreepy Gazebo listener: Failed to build current state of the robot")
+    def set_torques(self,desiredTorques):
+        self.send(self.buildCommand(desired_torque=desiredTorques))
 
-        self.lastState = lowState
-        return lowState
+    def set_angles(self,desiredPos):
+        self.send(self.buildCommand(desired_pos=desiredPos,position_gains=POSITION_GAINS,damping_gains=DAMPING_GAINS))
 
-    def buildLowState(self):
+    def move_to(self, desired_position, terminal_time=3):
+        """Move to desired position with poitn to point """
+        initial_position = self.__shared.joint_angles
+        init_time = time.perf_counter()
+        actual_time = 0
+
+        while actual_time <= terminal_time:
+            actual_time = time.perf_counter() - init_time
+            position, _ = p2p_cos_profile(actual_time,
+                                          initial_pose=initial_position,
+                                          final_pose=desired_position,
+                                          terminal_time=terminal_time)
+            self.set_angles(position)
+                
+    def move_to_init(self):
+        self.move_to(np.array(INIT_ANGLES))
+
+'''
+def buildLowState(self):
         lowState = LowState()
 
         position = self.__shared.position
@@ -243,32 +251,24 @@ class GazeboInterface:
 
         return lowState
 
+    def receive(self):
+        try:
+            lowState = LowState()
+            lowState = self.buildLowState()
+        except:
+            raise RuntimeError("Unitreepy Gazebo listener: Failed to build current state of the robot")
+
+        self.lastState = lowState
+        return lowState
+    
+    def jointStatesVectorCallback(self,msg):
+        #self.position = msg.position
+        #self.velocity = msg.velocity
+        pass
+
     def getPitchRoll(self):
         orientation = self.__shared.imu[:4]
         r = R.from_quat(orientation)
         rpy_angles = r.as_euler("xyz")
         return rpy_angles[1],rpy_angles[2]
-
-    def set_torques(self,desiredTorques):
-        self.send(self.buildCommand(desired_torque=desiredTorques))
-
-    def set_angles(self,desiredPos):
-        self.send(self.buildCommand(desired_pos=desiredPos,position_gains=POSITION_GAINS,damping_gains=DAMPING_GAINS))
-
-    def move_to(self, desired_position, terminal_time=3):
-        """Move to desired position with poitn to point """
-        initial_position = self.__shared.joint_angles
-        init_time = time.perf_counter()
-        actual_time = 0
-
-        while actual_time <= terminal_time:
-            actual_time = time.perf_counter() - init_time
-            position, _ = p2p_cos_profile(actual_time,
-                                          initial_pose=initial_position,
-                                          final_pose=desired_position,
-                                          terminal_time=terminal_time)
-            self.set_angles(position)
-                
-    def move_to_init(self):
-        self.move_to(np.array(INIT_ANGLES))
-
+'''
