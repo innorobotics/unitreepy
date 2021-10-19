@@ -2,6 +2,7 @@ from matplotlib import ticker
 from pyunitree.parsers.gazebo import GazeboMsgParser
 from pyunitree.robots.a1.constants import INIT_ANGLES,POSITION_GAINS,DAMPING_GAINS
 from pyunitree.utils._pos_profiles import p2p_cos_profile
+
 import rospy
 from unitree_legged_msgs.msg import LowState,MotorCmd,MotorState
 from sensor_msgs.msg import Imu,JointState
@@ -71,24 +72,14 @@ class GazeboInterface:
 
         self.__shared = Manager().Namespace()
         self.__shared.joint_angles = [0]*12
-        self.__shared.joint_speed = [0]*12
-        self.__shared.footforce =  [0]*4
-        self.__shared.footForces = [[0]*3]*4
-        self.__shared.imu = [0]*10
-        self.__shared.jointNames = None
-        self.__shared.ticker = 0
 
-        self.__shared.stateCompressed = np.zeros(39)
-
-        self.__shared.quaternion = self.imu[:4]
-        self.__shared.gyro = self.imu[4:7]
-        self.__shared.accel = self.imu[7:10]
 
         self.__shared.handlerIsWorking = False
         self.__shared.cmd = [0]*60
-        self.rawState = RawArray("d",39)
+
+        self.rawState = RawArray("f",39)
         data = np.zeros(39)
-        rawState = np.frombuffer(self.rawState, dtype=np.float64)
+        rawState = np.frombuffer(self.rawState, dtype=np.float32)
         np.copyto(rawState, data)
 
     
@@ -133,17 +124,13 @@ class GazeboInterface:
             
             self.__shared.handlerIsWorking = True
 
-            initial_time = time.perf_counter()
-            last_tick = 0
             while True:
-                actual_time = time.perf_counter() - initial_time
                 try:
                     command = self.__shared.cmd
 
                     self.moveStateToShared()
                     self.sendCommand(command)
                     rate.sleep()
-                        
                 except BrokenPipeError:
                     break
 
@@ -180,27 +167,18 @@ class GazeboInterface:
 
         return command
 
-    def getSharedState(self):
+    def getA1SharedState(self):
         return self.__shared
 
     def moveStateToShared(self):
-        self.__shared.quaternion = np.array(self.imu[:4])
-        self.__shared.gyro = np.array(self.imu[4:7])
-        self.__shared.accel = np.array(self.imu[7:10])
+
         self.__shared.joint_angles = np.array(self.position)
-        self.__shared.joint_speed = np.array(self.velocity)
-        self.__shared.jointNames = self.jointNames
-        self.__shared.ticker = self.time
 
         footforce = np.array([force[2] for force in self.footForces])
-        
-        self.__shared.footforce = np.array([force[2] for force in self.footForces])
-        self.__shared.footForces = np.array(self.footForces)
-        
+
         compressedState = np.hstack([self.imu,footforce,self.position,self.velocity])
         compressedState = np.append(compressedState,[self.time])
-        self.__shared.stateCompressed = compressedState
-        rawState = np.frombuffer(self.rawState, dtype=np.float64)
+        rawState = np.frombuffer(self.rawState, dtype=np.float32)
         np.copyto(rawState, compressedState)
         
     def motorVectorCallback(self,msg,idx):
