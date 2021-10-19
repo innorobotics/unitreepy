@@ -131,6 +131,7 @@ class GazeboInterface:
                     self.moveStateToShared()
                     self.sendCommand(command)
                     rate.sleep()
+                    
                 except BrokenPipeError:
                     break
 
@@ -176,8 +177,7 @@ class GazeboInterface:
 
         footforce = np.array([force[2] for force in self.footForces])
 
-        compressedState = np.hstack([self.imu,footforce,self.position,self.velocity])
-        compressedState = np.append(compressedState,[self.time])
+        compressedState = np.hstack([self.imu,footforce,self.position,self.velocity,[self.time]])
         rawState = np.frombuffer(self.rawState, dtype=np.float32)
         np.copyto(rawState, compressedState)
         

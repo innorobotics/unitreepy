@@ -1,6 +1,7 @@
 from numpy import array
+import numpy as np
 from time import perf_counter, sleep
-from multiprocessing import Process, Manager
+from multiprocessing import Process, Manager, RawArray
 from types import SimpleNamespace
 
 from ..parsers.low_level import LowLevelParser
@@ -36,6 +37,12 @@ class RobotHandler(LowLevelParser):
 
         self._handler_process = Process(target=self.__handler)
 
+        #Shared array init
+        self.rawState = RawArray("f",39)
+        data = np.zeros(39)
+        rawState = np.frombuffer(self.rawState, dtype=np.float32)
+        np.copyto(rawState, data)
+
     def __copy_state(self):
         # copy the internal states to shared memory
         self.state.joint_angles = self.joint_angles
@@ -49,7 +56,14 @@ class RobotHandler(LowLevelParser):
 
         self.state.footforce = self.foot_force
         self.state.footforceEst = self.foot_force_est
-        
+
+
+        footforce = np.array([force[2] for force in self.foot_force])
+
+        compressedState = np.hstack([self.quaternion,self.gyro,self.accelerometer,footforce,self.joint_angles,self.joint_speed,[self.tick]])
+
+        rawState = np.frombuffer(self.rawState, dtype=np.float32)
+        np.copyto(rawState, compressedState)
 
 
     def __update_state(self):
