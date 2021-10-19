@@ -57,10 +57,9 @@ class GazeboInterface:
     #Maps joint name to it's location in position and velocity idx in joint state
     motorMappings = {name:i for i,name in enumerate(motorNames)}
 
-    def __init__(self,update_rate):
+    def __init__(self):
         self.parser = GazeboMsgParser()
         self.lastState = LowState()
-        self.update_rate = update_rate
 
         self.jointNames = None
         self.position = [0]*12
@@ -114,7 +113,6 @@ class GazeboInterface:
 
             self.initTime = rospy.get_time()
             
-            rate = rospy.Rate(self.update_rate)
 
             info("Unitreepy Gazebo listener: Attempting to receive initial position from Gazebo")
             while self.jointNames==None:
@@ -129,7 +127,6 @@ class GazeboInterface:
 
                     self.moveStateToShared()
                     self.sendCommand(command)
-                    rate.sleep()
                     
                 except BrokenPipeError:
                     break
