@@ -125,6 +125,7 @@ class GazeboInterface:
                 try:
                     command = self.__shared.cmd
 
+                    self.time = rospy.get_time()-self.initTime
                     self.moveStateToShared()
                     self.sendCommand(command)
                     
@@ -134,7 +135,6 @@ class GazeboInterface:
         except KeyboardInterrupt:
             print('Exit')
     
-
     def sendCommand(self,command):
         motorCmd = MotorCmd()
         for motorId in range(12):
@@ -183,7 +183,6 @@ class GazeboInterface:
 
     def imuVectorCallback(self,msg):
         self.imu = self.parser.vectorizeImuMsg(msg)
-        self.time = rospy.get_time()-self.initTime
         self.jointNames = "A"
 
     def footForceVectorCallback(self,msg,footIdx):
