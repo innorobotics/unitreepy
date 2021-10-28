@@ -173,6 +173,9 @@ class RobotHandler(LowLevelParser):
         self.__shared.command = command
 
         return command
+    
+    def set_command(self, command):
+         self.__shared.command = command
 
     def set_torques(self, desired_torque):
         """Build the command from desired torque"""
