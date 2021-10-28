@@ -23,10 +23,8 @@ class RobotHandler(LowLevelParser):
     def __init__(self, update_rate=1000, constants = CONSTANTS):
         LowLevelParser.__init__(self)
         self.update_rate = update_rate
-
         self.state = Manager().Namespace()
         self.state.time = 0
-        self.__copy_state()
         # create the service namespace, to store incoming comands and
         self.__shared = Manager().Namespace()
         self.__shared.command = self._zero_command
@@ -35,13 +33,15 @@ class RobotHandler(LowLevelParser):
         self.set_gains(position_gains=constants.POSITION_GAINS,
                        damping_gains=constants.DAMPING_GAINS)
 
-        self._handler_process = Process(target=self.__handler)
 
         #Shared array init
         self.rawState = RawArray("f",39)
         data = np.zeros(39)
         rawState = np.frombuffer(self.rawState, dtype=np.float32)
         np.copyto(rawState, data)
+        self.__copy_state()
+
+        self._handler_process = Process(target=self.__handler)
 
     def __copy_state(self):
         # copy the internal states to shared memory
@@ -58,10 +58,14 @@ class RobotHandler(LowLevelParser):
         self.state.footforceEst = self.foot_force_est
 
 
-        footforce = np.array([force[2] for force in self.foot_force])
+        # footforce = np.array([force[2] for force in self.foot_force])
+
+        footforce = self.foot_force
 
         compressedState = np.hstack([self.quaternion,self.gyro,self.accelerometer,footforce,self.joint_angles,self.joint_speed,[self.tick]])
 
+        if self.quaternion == None:
+            return
         rawState = np.frombuffer(self.rawState, dtype=np.float32)
         np.copyto(rawState, compressedState)
 
