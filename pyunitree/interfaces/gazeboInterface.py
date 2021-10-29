@@ -1,21 +1,21 @@
-from matplotlib import ticker
+from multiprocessing.sharedctypes import RawValue
 from pyunitree.parsers.gazebo import GazeboMsgParser
 from pyunitree.robots.a1.constants import INIT_ANGLES,POSITION_GAINS,DAMPING_GAINS
 from pyunitree.utils._pos_profiles import p2p_cos_profile
 
 import rospy
-from unitree_legged_msgs.msg import LowState,MotorCmd,MotorState
-from sensor_msgs.msg import Imu,JointState
+from unitree_legged_msgs.msg import MotorCmd,MotorState
+from sensor_msgs.msg import Imu
 from geometry_msgs.msg import WrenchStamped
 
-from multiprocessing import Process, Manager, RawArray
 from logging import info
 import time
 import numpy as np
 
-from scipy.spatial.transform import Rotation as R
-
-class GazeboInterface:
+from pyunitree.base.daemon import Daemon
+from multiprocessing import Manager
+    
+class GazeboInterface(Daemon):
     controllerNames  =  [
                         "/a1_gazebo/FR_hip_controller",
                         "/a1_gazebo/FR_thigh_controller",
@@ -57,10 +57,9 @@ class GazeboInterface:
     #Maps joint name to it's location in position and velocity idx in joint state
     motorMappings = {name:i for i,name in enumerate(motorNames)}
 
-    def __init__(self):
+    def __init__(self,updateRate = -1,name = "Gazebo state listener"):
+        super(GazeboInterface,self).__init__(updateRate,name)
         self.parser = GazeboMsgParser()
-        self.lastState = LowState()
-
         self.jointNames = None
         self.position = [0]*12
         self.velocity = [0]*12
@@ -72,68 +71,56 @@ class GazeboInterface:
         self.__shared = Manager().Namespace()
         self.__shared.joint_angles = [0]*12
 
-        self.__shared.handlerIsWorking = False
         self.__shared.cmd = [0]*60
 
-        self.rawState = RawArray("f",39)
-        data = np.zeros(39)
-        rawState = np.frombuffer(self.rawState, dtype=np.float32)
-        np.copyto(rawState, data)
+        self.sharedStateSize = 39
+        self.sharedStateType = np.float32
 
+        data = np.zeros(self.sharedStateSize, dtype=self.sharedStateType)
+
+        self.stateIsValid = RawValue("b",False)
+
+        self.initSharedStateArray(39,"RobotState")
+
+    def processInit(self):
+        self.node = rospy.init_node('unitreepy_node')
     
-    def start(self):
-        self.handlerProc = Process(target=self.__handler,daemon=True)
-        self.handlerProc.start()
+        self.imuSub = rospy.Subscriber("/trunk_imu", Imu, self.imuVectorCallback)
 
-        while not self.__shared.handlerIsWorking:
+        self.footForceSubs = [rospy.Subscriber(name, WrenchStamped, self.footForceVectorCallback,(idx)) 
+                                                            for idx,name in enumerate(GazeboInterface.footContactNames)]
+
+        self.motorSubs = [rospy.Subscriber(name+"/state", MotorState, self.motorVectorCallback,(idx)) 
+                                                            for idx,name in enumerate(GazeboInterface.controllerNames)]
+
+        self.servoPublishers = [rospy.Publisher(controllerName+"/command", MotorCmd) 
+                                                            for controllerName in GazeboInterface.controllerNames]
+
+        self.initTime = rospy.get_time()
+        info("Unitreepy Gazebo listener: Attempting to receive initial position from Gazebo")
+        while not self.stateIsValid.value:
+            time.sleep(0.001)
+        self.moveStateToShared()
+        info("Unitreepy Gazebo listener: Initial state received")
+
+    def action(self):
+        try:
+            command = self.__shared.cmd
+            self.time = rospy.get_time()-self.initTime
+            self.moveStateToShared()
+            self.sendCommand(command)
+            return True
+        except BrokenPipeError:
+            return False
+    
+    def onStart(self):
+        while not self.stateIsValid.value:
             time.sleep(0.01)
-
+        
     def __del__(self):
         self.stop()
-        
-    def stop(self):
-        self.handlerProc.terminate()
-        
-    def __handler(self):
-        try:
-            self.node = rospy.init_node('unitreepy_node')
-        
-            self.imuSub = rospy.Subscriber("/trunk_imu", Imu, self.imuVectorCallback)
-
-            self.footForceSubs = [rospy.Subscriber(name, WrenchStamped, self.footForceVectorCallback,(idx)) 
-                                                                for idx,name in enumerate(GazeboInterface.footContactNames)]
-
-            #self.servoSubs = rospy.Subscriber("/a1_gazebo/joint_states", JointState, self.jointStatesVectorCallback) 
-            
-            self.motorSubs = [rospy.Subscriber(name+"/state", MotorState, self.motorVectorCallback,(idx)) 
-                                                                for idx,name in enumerate(GazeboInterface.controllerNames)]
-
-            self.servoPublishers = [rospy.Publisher(controllerName+"/command", MotorCmd) 
-                                                                for controllerName in GazeboInterface.controllerNames]
-
-            self.initTime = rospy.get_time()
-            
-
-            info("Unitreepy Gazebo listener: Attempting to receive initial position from Gazebo")
-            while self.jointNames==None:
-                time.sleep(0.001)
-            info("Unitreepy Gazebo listener: Initial state received")
-            
-            self.__shared.handlerIsWorking = True
-
-            while True:
-                try:
-                    command = self.__shared.cmd
-
-                    self.time = rospy.get_time()-self.initTime
-                    self.moveStateToShared()
-                    self.sendCommand(command)
-                    
-                except BrokenPipeError:
-                    break
-
-        except KeyboardInterrupt:
-            print('Exit')
+    
+    #Utils
     
     def sendCommand(self,command):
         motorCmd = MotorCmd()
@@ -164,18 +151,15 @@ class GazeboInterface:
 
         return command
 
-    def getA1SharedState(self):
-        return self.__shared
-
     def moveStateToShared(self):
-
         self.__shared.joint_angles = np.array(self.position)
 
         footforce = np.array([force[2] for force in self.footForces])
 
         compressedState = np.hstack([self.imu,footforce,self.position,self.velocity,[self.time]])
-        rawState = np.frombuffer(self.rawState, dtype=np.float32)
-        np.copyto(rawState, compressedState)
+
+        # NOTE Buffer manipulation
+        np.copyto(self.rawStateBuffer, compressedState)
         
     def motorVectorCallback(self,msg,idx):
         self.position[idx] = msg.q
@@ -183,7 +167,7 @@ class GazeboInterface:
 
     def imuVectorCallback(self,msg):
         self.imu = self.parser.vectorizeImuMsg(msg)
-        self.jointNames = "A"
+        self.stateIsValid.value = 1
 
     def footForceVectorCallback(self,msg,footIdx):
         self.footForces[footIdx] = self.parser.vectorizeEeForce(msg)
@@ -213,58 +197,3 @@ class GazeboInterface:
                 
     def move_to_init(self):
         self.move_to(np.array(INIT_ANGLES))
-
-'''
-def buildLowState(self):
-        lowState = LowState()
-
-        position = self.__shared.position
-        velocity = self.__shared.velocity
-        jointNames = self.__shared.jointNames
-
-        for i in range(4):
-            jointIdx1 = GazeboInterface.motorMappings[jointNames[3*i]]
-            jointIdx2 = GazeboInterface.motorMappings[jointNames[3*i+1]]
-            jointIdx3 = GazeboInterface.motorMappings[jointNames[3*i+2]]
-
-            lowState.motorState[jointIdx1].q = position[3*i]
-            lowState.motorState[jointIdx2].q = position[3*i+1]
-            lowState.motorState[jointIdx3].q = position[3*i+2]
-
-            lowState.motorState[jointIdx1].dq = velocity[3*i]
-            lowState.motorState[jointIdx2].dq = velocity[3*i+1]
-            lowState.motorState[jointIdx3].dq = velocity[3*i+2]
-
-        imu = self.__shared.imu
-        lowState.imu = self.parser.parseImuVector(imu)
-
-        footForces = self.__shared.footForces
-
-        for i in range(4):
-            lowState.eeForce[i],lowState.footForce[i] = self.parser.parseEeForceVector(footForces[i])
-        
-        lowState.tick = self.__shared.time
-
-        return lowState
-
-    def receive(self):
-        try:
-            lowState = LowState()
-            lowState = self.buildLowState()
-        except:
-            raise RuntimeError("Unitreepy Gazebo listener: Failed to build current state of the robot")
-
-        self.lastState = lowState
-        return lowState
-    
-    def jointStatesVectorCallback(self,msg):
-        #self.position = msg.position
-        #self.velocity = msg.velocity
-        pass
-
-    def getPitchRoll(self):
-        orientation = self.__shared.imu[:4]
-        r = R.from_quat(orientation)
-        rpy_angles = r.as_euler("xyz")
-        return rpy_angles[1],rpy_angles[2]
-'''
