@@ -96,7 +96,6 @@ class RobotHandler(LowLevelParser,Daemon):
             
         np.copyto(self.rawStateBuffer, compressedState)
 
-
     def __send_command(self, command):
         # send low level command through transmitter
         self.transmitter(command)

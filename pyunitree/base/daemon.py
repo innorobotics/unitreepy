@@ -4,10 +4,11 @@ from time import perf_counter,sleep
 from logging import info
 import numpy as np
 
+
 try:
-    from multiprocessing import shared_memory
+    from multiprocessing.shared_memory import SharedMemory
     SHM_IMPORTED = True 
-except ImportError:
+except ModuleNotFoundError:
     SHM_IMPORTED = False
 
 class Daemon:
@@ -68,9 +69,9 @@ class Daemon:
         
         if SHM_IMPORTED:
             try:
-                self.rawStateShm = shared_memory.SharedMemory(create=True, size=data.nbytes,name=name)
+                self.rawStateShm = SharedMemory(create=True, size=data.nbytes,name=name)
             except FileExistsError:
-                self.rawStateShm = shared_memory.SharedMemory(name=name)
+                self.rawStateShm = SharedMemory(name=name)
 
             self.rawStatePtr =  self.rawStateShm.buf
         else:
