@@ -59,6 +59,7 @@ class GazeboInterface(Daemon):
 
     def __init__(self,updateRate = -1,name = "Gazebo state listener"):
         super(GazeboInterface,self).__init__(updateRate,name)
+        
         self.parser = GazeboMsgParser()
         self.jointNames = None
         self.position = [0]*12
@@ -70,7 +71,6 @@ class GazeboInterface(Daemon):
 
         self.__shared = Manager().Namespace()
         self.__shared.joint_angles = [0]*12
-
         self.__shared.cmd = [0]*60
 
         self.sharedStateSize = 39
@@ -117,9 +117,6 @@ class GazeboInterface(Daemon):
         while not self.stateIsValid.value:
             time.sleep(0.01)
         
-    def __del__(self):
-        self.stop()
-    
     #Utils
     
     def sendCommand(self,command):

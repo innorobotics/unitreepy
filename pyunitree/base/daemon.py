@@ -97,6 +97,8 @@ class Daemon:
         if self.hasSharedState == True and SHM_IMPORTED:
             self.rawStateShm.close()
             self.rawStateShm.unlink()
+
+        self.stop()
     
     def init(self):
         pass
