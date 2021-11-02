@@ -1,7 +1,7 @@
 import setuptools
 
-with open("README.md", "r", encoding="utf-8") as fh:
-    long_description = fh.read()
+# with open("README.md", "r", encoding="utf-8") as fh:
+#     long_description = fh.read()
 
 setuptools.setup(
     name="pyunitree", 
@@ -9,7 +9,7 @@ setuptools.setup(
     author="Simeon Nedelchev",
     author_email="simkaned@gmail.com",
     description="A package provide parsers and handlers of Unitree robots",
-    long_description=long_description,
+    # long_description=long_description,
     # long_description_content_type="text/markdown",
     # url="https://github.com/pypa/sampleproject",
     # project_urls={
