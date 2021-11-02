@@ -171,7 +171,10 @@ class GazeboInterface(Daemon):
 
     def send(self,cmd):
         self.__shared.cmd = cmd
-
+    
+    def set_command(self,cmd):
+        self.__shared.cmd = cmd
+        
     def set_torques(self,desiredTorques):
         self.send(self.buildCommand(desired_torque=desiredTorques))
 
