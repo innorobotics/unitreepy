@@ -80,23 +80,26 @@ class RobotHandler(LowLevelParser, Daemon):
         command = self.__shared.command
         self.state.time = actual_time
         self.__send_command(command)
-        self.__update_state()
+        low_state = self.__update_state()
+        self.state.remote = low_state.wirelessRemote
         tick = actual_time
         return True
 
     def __update_state(self):
         # update state based on incoming data
-        self.__receive_state()
+        low_state = self.__receive_state()
         self.__copy_state()
+        return low_state
 
     def __receive_state(self):
         # receive the low state and parse
         low_state = self.receiver()
         self.parse_state(low_state)
+        return low_state
 
     def __copy_state(self):
         compressedState = np.hstack([self.quaternion, self.gyro, self.accelerometer,
-                                    self.foot_force, self.joint_angles, self.joint_speed, [self.tick]])
+                                    self.foot_force, self.joint_angles, self.joint_speed, [self.tick/1000]])
 
         if self.quaternion == None:
             return
