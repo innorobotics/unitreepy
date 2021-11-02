@@ -28,6 +28,7 @@ class RobotHandler(LowLevelParser, Daemon):
 
         self.state = Manager().Namespace()
         self.state.time = 0
+        self.state.remote = 0
         self.__copy_state()
         # create the service namespace, to store incoming comands and
         self.__shared = Manager().Namespace()
@@ -95,7 +96,7 @@ class RobotHandler(LowLevelParser, Daemon):
 
     def __copy_state(self):
         compressedState = np.hstack([self.quaternion, self.gyro, self.accelerometer,
-                                    self.foot_force, self.joint_angles, self.joint_speed, [self.tick/1000]])
+                                    self.foot_force, self.joint_angles, self.joint_speed, [self.tick]])
 
         if self.quaternion == None:
             return
@@ -178,3 +179,6 @@ class RobotHandler(LowLevelParser, Daemon):
 
     def move_to_init(self):
         self.move_to(array(CONSTANTS.INIT_ANGLES))
+
+
+    # def get
