@@ -59,6 +59,8 @@ class Daemon:
         except KeyboardInterrupt:
             info(f"Process {self.name} was interrupted")
 
+
+
     def initSharedStateArray(self,size,name,dataType=np.float32):
         self.hasSharedState = True
         self.sharedStateName = name
@@ -83,12 +85,16 @@ class Daemon:
         np.copyto(self.rawStateBuffer, data)
 
     def start(self):
+        self.preStart()
         self.handlerProc.start()
         while self._processReady.value == 0:
             sleep(0.01)
         info(f"Process {self.name} has started")
         self.onStart()
 
+    def preStart(self):
+        pass
+    
     def stop(self):
         self.onStop()
         self.handlerProc.terminate()
