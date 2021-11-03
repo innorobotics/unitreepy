@@ -191,7 +191,7 @@ class RobotHandler(LowLevelParser, Daemon):
 
     def move_to(self, desired_position, terminal_time=3):
         """Move to desired position with poitn to point """
-        initial_position = array(self.joint_angles)
+        initial_position = np.copy(self.rawRemoteBuffer[14:26])
         init_time = perf_counter()
         actual_time = 0
 
