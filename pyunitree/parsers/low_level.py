@@ -1,4 +1,4 @@
-from numpy import zeros, float32
+from numpy import zeros, float32,bytes_
 from ..robots._default.constants import NUM_MOTORS, NUM_LEGS
 
 
@@ -54,7 +54,7 @@ class LowLevelParser:
         # Foot force estimates
         self.foot_force = zeros(NUM_LEGS)
         self.foot_force_est = zeros(NUM_LEGS)
-
+        self.wirelessRemote = zeros(320,dtype=bytes_)
         # IMU states
         self.quaternion = None
         self.gyro = None

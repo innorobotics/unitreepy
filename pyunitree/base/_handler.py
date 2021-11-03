@@ -24,12 +24,8 @@ class RobotHandler(LowLevelParser, Daemon):
 
     def __init__(self, update_rate=1000, constants=CONSTANTS):
         LowLevelParser.__init__(self)
-        Daemon.__init__(self, update_rate, "RealRobotHandler")
+        Daemon.__init__(self, update_rate, "RobotHandler")
 
-        self.state = Manager().Namespace()
-        self.state.time = 0
-        self.state.remote = 0
-        self.__copy_state()
         # create the service namespace, to store incoming comands and
         self.__shared = Manager().Namespace()
         self.__shared.command = self._zero_command
@@ -42,8 +38,10 @@ class RobotHandler(LowLevelParser, Daemon):
         self.initSharedStateArray(39, "RobotState")
         self.initWirelessRemoteArray()
 
+        self.__copy_state()
+
     def initWirelessRemoteArray(self):
-        remoteByteSize=40
+        remoteByteSize=320
         data = np.zeros(remoteByteSize,dtype=np.bytes_)
         if SHM_IMPORTED:
             from multiprocessing.shared_memory import SharedMemory
@@ -57,9 +55,8 @@ class RobotHandler(LowLevelParser, Daemon):
             from multiprocessing import RawArray
             self.rawRemotePtr = RawArray("b",remoteByteSize)
 
-        self.rawRemoteBuffer = np.frombuffer(self.rawRemotePtr, dtype=np.bytes_)
-    
-        np.copyto(self.rawRemoteBuffer, data)
+        self.rawRemoteBuffer = np.frombuffer(self.rawRemotePtr, dtype=np.float32)
+        np.copyto(self.rawRemoteBuffer, np.frombuffer(data, dtype=np.float32))
 
     def processInit(self):
         self.init_time = perf_counter()
@@ -96,40 +93,33 @@ class RobotHandler(LowLevelParser, Daemon):
         # //////////////////////////////////////////////////////////
 
     def action(self):
-        actual_time = perf_counter() - self.init_time
         command = self.__shared.command
-        self.state.time = actual_time
         self.__send_command(command)
         low_state = self.__update_state()
-        self.state.remote = low_state.wirelessRemote
-        tick = actual_time
         return True
 
     def __update_state(self):
         # update state based on incoming data
         low_state = self.__receive_state()
+        self.parse_state(low_state)
         self.__copy_state()
         return low_state
 
     def __receive_state(self):
         # receive the low state and parse
         low_state = self.receiver()
-        self.parse_state(low_state)
         return low_state
 
     def __copy_state(self):
-        wireless = self.wirelessRemote
-
         compressedState = np.hstack([self.quaternion, self.gyro, self.accelerometer,
                                     self.foot_force, self.joint_angles, self.joint_speed, [self.tick/1000]])
 
-        if self.quaternion == None:
+        if self.quaternion is None:
             return
 
-        if self.rawStateBuffer != None:
-            np.copyto(self.rawRemoteBuffer,self.wirelessRemote)
-
+        np.copyto(self.rawRemoteBuffer,np.frombuffer(self.wirelessRemote,dtype=np.float32))
         np.copyto(self.rawStateBuffer, compressedState)
+
 
     def __send_command(self, command):
         # send low level command through transmitter
@@ -191,12 +181,11 @@ class RobotHandler(LowLevelParser, Daemon):
 
     def move_to(self, desired_position, terminal_time=3):
         """Move to desired position with poitn to point """
-        initial_position = np.copy(self.rawRemoteBuffer[14:26])
+        initial_position = np.copy(self.rawStateBuffer[14:26])
         init_time = perf_counter()
         actual_time = 0
 
         while actual_time <= terminal_time:
-            # print(self.joint_angles)
             actual_time = perf_counter() - init_time
             position, _ = p2p_cos_profile(actual_time,
                                           initial_pose=initial_position,
