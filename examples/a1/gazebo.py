@@ -31,7 +31,7 @@ while robot.state.time - initial_time < 5:
     
     desired_angles = np.array(STAND_ANGLES)*(1 + 0.25 * math.sin(3*currentTime))
     robot.set_angles(desired_angles)
-    currentTime = time.time()
+    currentTime = time.perf_counter()
     
 robot.move_to_init()
 

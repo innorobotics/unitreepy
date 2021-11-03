@@ -9,7 +9,7 @@ from pyunitree.base.daemon import Daemon
 from ..parsers.low_level import LowLevelParser
 from ..utils._pos_profiles import p2p_cos_profile
 from ..robots._default.constants import POSITION_GAINS, DAMPING_GAINS, INIT_ANGLES
-from .daemon import Daemon
+from .daemon import Daemon,SHM_IMPORTED
 
 CONSTANTS = SimpleNamespace()
 
@@ -39,6 +39,26 @@ class RobotHandler(LowLevelParser, Daemon):
 
         # Shared array init
         self.initSharedStateArray(39, "RobotState")
+        self.initWirelessRemoteArray()
+
+    def initWirelessRemoteArray(self):
+        remoteByteSize=40
+        data = np.zeros(remoteByteSize,dtype=np.bytes_)
+        if SHM_IMPORTED:
+            from multiprocessing.shared_memory import SharedMemory
+            try:
+                self.rawRemoteShm = SharedMemory(create=True, size=remoteByteSize,name="WirelessRemote")
+            except FileExistsError:
+                self.rawRemoteShm = SharedMemory(name="WirelessRemote")
+
+            self.rawRemotePtr =  self.rawRemoteShm.buf
+        else:
+            from multiprocessing import RawArray
+            self.rawRemotePtr = RawArray("b",remoteByteSize)
+
+        self.rawRemoteBuffer = np.frombuffer(self.rawRemotePtr, dtype=np.bytes_)
+    
+        np.copyto(self.rawRemoteBuffer, data)
 
     def processInit(self):
         self.init_time = perf_counter()
@@ -94,11 +114,16 @@ class RobotHandler(LowLevelParser, Daemon):
         self.parse_state(low_state)
 
     def __copy_state(self):
+        wireless = self.wirelessRemote
+
         compressedState = np.hstack([self.quaternion, self.gyro, self.accelerometer,
                                     self.foot_force, self.joint_angles, self.joint_speed, [self.tick/1000]])
 
         if self.quaternion == None:
             return
+
+        if self.rawStateBuffer != None:
+            np.copyto(self.rawRemoteBuffer,self.wirelessRemote)
 
         np.copyto(self.rawStateBuffer, compressedState)
 

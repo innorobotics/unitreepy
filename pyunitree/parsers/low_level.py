@@ -82,6 +82,7 @@ class LowLevelParser:
         self.foot_force_est = low_state.footForceEst
         # get controller ticker
         self.tick = low_state.tick
+        self.wirelessRemote = low_state.wirelessRemote
 
     # def get_motor_states(self):
     #     motor_states = self.joint_angles, self.joint_speed
