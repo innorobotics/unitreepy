@@ -79,7 +79,7 @@ class GazeboInterface(Daemon):
         data = np.zeros(self.sharedStateSize, dtype=self.sharedStateType)
 
         self.stateIsValid = RawValue("b",False)
-
+        self.rawRemotePtr = None
         self.initSharedStateArray(39,"RobotState")
 
     def processInit(self):
