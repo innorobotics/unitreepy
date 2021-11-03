@@ -3,5 +3,5 @@
 sudo apt install liblcm-dev
 git clone https://github.com/RumblingTurtle/unitree_legged_sdk.git
 cd ./unitree_legged_sdk/
-sudo python setup.py install
+sudo python3.8 setup.py install
 cd ..

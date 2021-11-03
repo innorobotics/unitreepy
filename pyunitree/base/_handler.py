@@ -28,6 +28,7 @@ class RobotHandler(LowLevelParser, Daemon):
 
         self.state = Manager().Namespace()
         self.state.time = 0
+        self.state.remote = 0
         self.__copy_state()
         # create the service namespace, to store incoming comands and
         self.__shared = Manager().Namespace()
@@ -99,19 +100,22 @@ class RobotHandler(LowLevelParser, Daemon):
         command = self.__shared.command
         self.state.time = actual_time
         self.__send_command(command)
-        self.__update_state()
+        low_state = self.__update_state()
+        self.state.remote = low_state.wirelessRemote
         tick = actual_time
         return True
 
     def __update_state(self):
         # update state based on incoming data
-        self.__receive_state()
+        low_state = self.__receive_state()
         self.__copy_state()
+        return low_state
 
     def __receive_state(self):
         # receive the low state and parse
         low_state = self.receiver()
         self.parse_state(low_state)
+        return low_state
 
     def __copy_state(self):
         wireless = self.wirelessRemote
@@ -203,3 +207,6 @@ class RobotHandler(LowLevelParser, Daemon):
 
     def move_to_init(self):
         self.move_to(array(CONSTANTS.INIT_ANGLES))
+
+
+    # def get
