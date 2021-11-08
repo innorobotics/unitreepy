@@ -126,7 +126,7 @@ class A1SharedState:
                 self.rawRemoteBuffer = np.frombuffer(wirelessRemotePtr, dtype=np.float32)
 
             if commandPtr is not None:
-                self.commandBuffer = np.frombuffer(commandPtr, dtype=np.float32)
+                self.rawCommandBuffer = np.frombuffer(commandPtr, dtype=np.float32)
 
         if wirelessRemotePtr is not None:
             self.wirelessParser = WirelessRemote()
