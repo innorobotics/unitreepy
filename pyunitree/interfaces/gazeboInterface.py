@@ -70,7 +70,6 @@ class GazeboInterface(Daemon):
         self.initTime = 0
 
         self.__shared = Manager().Namespace()
-        self.__shared.joint_angles = [0]*12
         self.__shared.cmd = [0]*60
 
         self.sharedStateSize = 39
@@ -112,6 +111,8 @@ class GazeboInterface(Daemon):
             return True
         except BrokenPipeError:
             return False
+        except ConnectionResetError:
+            return False
     
     def onStart(self):
         while not self.stateIsValid.value:
@@ -149,7 +150,6 @@ class GazeboInterface(Daemon):
         return command
 
     def moveStateToShared(self):
-        self.__shared.joint_angles = np.array(self.position)
 
         footforce = np.array([force[2] for force in self.footForces])
 
@@ -183,7 +183,7 @@ class GazeboInterface(Daemon):
 
     def move_to(self, desired_position, terminal_time=3):
         """Move to desired position with poitn to point """
-        initial_position = self.__shared.joint_angles
+        initial_position = np.copy(self.rawStateBuffer[14:26])
         init_time = time.perf_counter()
         actual_time = 0
 
