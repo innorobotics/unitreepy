@@ -80,7 +80,7 @@ class A1SharedState:
              dq  |12|
             tick |1|
     """
-    def __init__(self,stateBufferPtr=None,modelBufferPtr=None,observerBufferPtr=None,wirelessRemotePtr=None):
+    def __init__(self,stateBufferPtr=None,modelBufferPtr=None,observerBufferPtr=None,wirelessRemotePtr=None,commandPtr=None):
 
         if SHM_IMPORTED:
             from multiprocessing.shared_memory import SharedMemory
@@ -104,8 +104,15 @@ class A1SharedState:
                 self.rawRemoteBuffer =  np.frombuffer(self.rawRemoteShm.buf,dtype=np.bytes_)
             except:
                 self.rawRemoteBuffer = None
+
+            try:
+                self.rawCommandShm = SharedMemory(create=True,name="Command",size=12)
+            except FileExistsError:
+                self.rawCommandShm = SharedMemory(name="Command")
+            
+            self.rawCommandBuffer =  np.frombuffer(self.rawCommandShm.buf,dtype=np.float32)
+
         else:
-            from multiprocessing import RawArray
             if stateBufferPtr is not None:
                 self.stateVec = np.frombuffer(stateBufferPtr, dtype=self.DATA_TYPE)
 
@@ -117,6 +124,9 @@ class A1SharedState:
 
             if wirelessRemotePtr is not None:
                 self.rawRemoteBuffer = np.frombuffer(wirelessRemotePtr, dtype=np.float32)
+
+            if commandPtr is not None:
+                self.commandBuffer = np.frombuffer(commandPtr, dtype=np.float32)
 
         if wirelessRemotePtr is not None:
             self.wirelessParser = WirelessRemote()
@@ -174,7 +184,7 @@ class A1SharedState:
             footPositions[i] = FootPositionInHipFrame(foot_angles[i],
                                                         l_hip_sign=i)
         return footPositions + self.HIP_OFFSETS
-        
+    
     def ComputeMotorAnglesFromFootLocalPosition(self, leg_id,
                                                 foot_local_position):
                                                 
@@ -221,6 +231,12 @@ class A1SharedState:
     def ComputeJacobian(self,idx):
         return self.GetJacobians()[idx*3:idx*3+3]
     
+    def SetCommand(self,command):
+        np.copyto(self.rawCommandBuffer,command)
+
+    def GetCommand(self):
+        return np.copy(self.rawCommandBuffer)
+
     def printWirelessState(self):
         remote = self.wirelessParser
         state = np.copy(self.rawRemoteBuffer).tobytes()
