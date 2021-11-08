@@ -58,6 +58,8 @@ class Daemon:
                         break
         except KeyboardInterrupt:
             info(f"Process {self.name} was interrupted")
+        except Exception as e:
+            info(f"Daemon process {self.name} was interrupted by an exception inside the handler: \n{e}")
 
 
 
