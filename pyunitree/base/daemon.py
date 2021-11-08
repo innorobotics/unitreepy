@@ -103,11 +103,13 @@ class Daemon:
         info(f"Process {self.name} terminated")
 
     def __del__(self):
+        if self.handlerProc.is_alive():
+            self.stop()
+            
         if self.hasSharedState == True and SHM_IMPORTED:
             self.rawStateShm.close()
             self.rawStateShm.unlink()
 
-        self.stop()
     
     def init(self):
         pass
