@@ -132,19 +132,17 @@ class A1SharedState:
             self.wirelessParser = WirelessRemote()
 
     def __del__(self):
-
-        if SHM_IMPORTED:
-
-            if self.rawStateShm is not None:
+        if SHM_IMPORTED: 
+            if hasattr(self, 'rawStateShm'):
                 self.rawStateShm.close()
             
-            if self.rawVelShm is not None:
+            if hasattr(self, 'rawVelShm'):
                 self.rawVelShm.close()
 
-            if self.rawJacShm is not None:
+            if hasattr(self, 'rawJacShm'):
                 self.rawJacShm.close()
 
-            if self.rawRemoteShm is not None:
+            if hasattr(self, 'rawRemoteShm'):
                 self.rawRemoteShm.close()
 
     def GetBaseOrientationQuaternion(self):
