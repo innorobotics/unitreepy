@@ -108,7 +108,10 @@ class Daemon:
             
         if self.hasSharedState == True and SHM_IMPORTED:
             self.rawStateShm.close()
-            self.rawStateShm.unlink()
+            try:
+                self.rawStateShm.unlink()
+            except:
+                info(f"Process {self.name} failed to unlink shared_memory")
 
     
     def init(self):

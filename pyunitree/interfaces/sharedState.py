@@ -1,3 +1,4 @@
+from logging import info
 import numpy as np
 from scipy.spatial.transform import Rotation as R
 from pyunitree.utils.kinematics import FootPositionInHipFrameToJointAngle,FootPositionInHipFrame,EulerFromQuaternion
@@ -107,7 +108,9 @@ class A1SharedState:
 
             try:
                 self.rawCommandShm = SharedMemory(create=True,name="Command",size=12)
+                self.createdCommandShm = True
             except FileExistsError:
+                self.createdCommandShm = False
                 self.rawCommandShm = SharedMemory(name="Command")
             
             self.rawCommandBuffer =  np.frombuffer(self.rawCommandShm.buf,dtype=np.float32)
@@ -144,6 +147,14 @@ class A1SharedState:
 
             if hasattr(self, 'rawRemoteShm'):
                 self.rawRemoteShm.close()
+            
+            if hasattr(self,'rawCommandShm'):
+                self.rawCommandShm.close()
+                if self.createdCommandShm:
+                    try:
+                        self.rawCommandShm.unlink()
+                    except:
+                        info("A1SharedState failed to unlink shared memory containing the command")
 
     def GetBaseOrientationQuaternion(self):
         q = self.stateVec[:4]
