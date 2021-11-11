@@ -221,7 +221,7 @@ class A1SharedState:
 
     def GetFootContacts(self):
         footForce = self.GetFootForces()
-        return np.array(footForce) > self.FOOT_FORCE_THRESHOLD
+        return footForce > self.FOOT_FORCE_THRESHOLD
     
     def GetVelocities(self):
         velocities = self.rawVelocitiesBuffer
