@@ -1,6 +1,6 @@
 import numpy as np
 import math
-
+from numba import jit
 def leg_kinematics(motor_angles, link_lengths, base_position):
 
     q1, q2, q3 = motor_angles
@@ -70,13 +70,15 @@ def RotFromQuaternion(quat):
                     [r10, r11, r12],
                     [r20, r21, r22]])
 
+@jit(nopython=True)
 def FootPositionInHipFrame(angles, l_hip_sign=1):
     theta_ab, theta_hip, theta_knee = angles[0], angles[1], angles[2]
+
     l_up = 0.2
     l_low = 0.2
     l_hip = 0.08505 * ((-1)**(l_hip_sign + 1))
-    leg_distance = np.sqrt(l_up**2 + l_low**2 +
-                            2 * l_up * l_low * math.cos(theta_knee))
+
+    leg_distance = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * math.cos(theta_knee))
     eff_swing = theta_hip + theta_knee / 2
 
     off_x_hip = -leg_distance * math.sin(eff_swing)
@@ -90,21 +92,24 @@ def FootPositionInHipFrame(angles, l_hip_sign=1):
     off_y = theta_ab_cos * off_y_hip - theta_ab_sin * off_z_hip
     off_z = theta_ab_sin * off_y_hip + theta_ab_cos * off_z_hip
     return [off_x, off_y, off_z]
-
+    
+@jit(nopython=True)
 def FootPositionInHipFrameToJointAngle(foot_position, l_hip_sign=1):
     l_up = 0.2
     l_low = 0.2
     l_hip = 0.08505 * ((-1)**(l_hip_sign + 1))
     x, y, z = foot_position[0], foot_position[1], foot_position[2]
-    theta_knee = -np.arccos(
+    theta_knee = -math.acos(
         (x**2 + y**2 + z**2 - l_hip**2 - l_low**2 - l_up**2) /
         (2 * l_low * l_up))
-    l = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(theta_knee))
-    theta_hip = np.arcsin(-x / l) - theta_knee / 2
-    c1 = l_hip * y - l * np.cos(theta_hip + theta_knee / 2) * z
-    s1 = l * np.cos(theta_hip + theta_knee / 2) * y + l_hip * z
-    theta_ab = np.arctan2(s1, c1)
-    return np.array([theta_ab, theta_hip, theta_knee])
+
+    l = math.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * math.cos(theta_knee))
+
+    theta_hip = math.asin(-x / l) - theta_knee / 2
+    c1 = l_hip * y - l * math.cos(theta_hip + theta_knee / 2) * z
+    s1 = l * math.cos(theta_hip + theta_knee / 2) * y + l_hip * z
+    theta_ab = math.atan2(s1, c1)
+    return [theta_ab, theta_hip, theta_knee]
 
 def AnalyticalLegJacobian(leg_angles, sign):
     """
