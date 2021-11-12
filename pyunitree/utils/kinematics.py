@@ -45,7 +45,7 @@ def EulerFromQuaternion(quat):
      
         return [roll_x, pitch_y, yaw_z]
 
-@jit(nopython=True)
+
 def FootPositionInHipFrame(angles, l_hip_sign=1):
     theta_ab, theta_hip, theta_knee = angles[0], angles[1], angles[2]
 
@@ -68,7 +68,6 @@ def FootPositionInHipFrame(angles, l_hip_sign=1):
     off_z = theta_ab_sin * off_y_hip + theta_ab_cos * off_z_hip
     return [off_x, off_y, off_z]
     
-@jit(nopython=True)
 def FootPositionInHipFrameToJointAngle(foot_position, l_hip_sign=1):
     l_up = 0.2
     l_low = 0.2

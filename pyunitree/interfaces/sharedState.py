@@ -209,15 +209,6 @@ class A1SharedState:
 
         return joint_position_idxs, joint_angles.tolist()
 
-    def jitWarmup(self):
-        offset = [0,0,0]
-        for i in range(10):
-            self.GetFootPositionsInBaseFrame()
-            self.ComputeMotorAnglesFromFootLocalPosition(0,offset)
-            self.ComputeMotorAnglesFromFootLocalPosition(1,offset)
-            self.ComputeMotorAnglesFromFootLocalPosition(2,offset)
-            self.ComputeMotorAnglesFromFootLocalPosition(3,offset)
-
     def GetHipPositionsInBaseFrame(self):
         return self._DEFAULT_HIP_POSITIONS
 
