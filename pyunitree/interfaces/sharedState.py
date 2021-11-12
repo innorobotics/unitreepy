@@ -1,20 +1,15 @@
 from logging import info
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-from pyunitree.utils.kinematics import FootPositionInHipFrameToJointAngle,FootPositionInHipFrame,EulerFromQuaternion
-from pyunitree.utils.gaitStates import LegState
-from pyunitree.robots.a1.constants import POSITION_GAINS,DAMPING_GAINS
+from pyunitree.utils.kinematics import FootPositionInHipFrame,EulerFromQuaternion
+from pyunitree.robots.a1.constants import POSITION_GAINS,DAMPING_GAINS,HIP_OFFSETS
 from pyunitree.base.daemon import SHM_IMPORTED
 from pyunitree.parsers.remote import WirelessRemote
+
 
 class A1SharedState:
     MPC_BODY_MASS = 108 / 9.8
     MPC_BODY_INERTIA = np.array((0.24, 0, 0, 0, 0.80, 0, 0, 0, 1.00))
-
-    COM_OFFSET = -np.array([0.012731, 0.002186, 0.000515])
-    HIP_OFFSETS = np.array([[0.183, -0.047, 0.], [0.183, 0.047, 0.],
-                            [-0.183, -0.047, 0.], [-0.183, 0.047, 0.]
-                            ]) + COM_OFFSET
 
     _DEFAULT_HIP_POSITIONS = (
         (0.17, -0.135, 0),
@@ -23,48 +18,8 @@ class A1SharedState:
         (-0.195, 0.13, 0),
     )
     
-    MOTOR_DIRECTION = np.ones(12)
-
     KPS = POSITION_GAINS
     KDS = DAMPING_GAINS
-
-    _STANCE_DURATION_SECONDS = [
-        0.3
-    ] * 4  # For faster trotting (v > 1.5 ms reduce this to 0.13s).
-
-    #Standing
-    #_DUTY_FACTOR = [1.] * 4
-    #_INIT_PHASE_FULL_CYCLE = [0., 0., 0., 0.]
-
-    #_INIT_LEG_STATE = (
-    #     LegState.STANCE,
-    #     LegState.STANCE,
-    #     LegState.STANCE,
-    #     LegState.STANCE,
-    #)
-
-
-    # Tripod
-    # _DUTY_FACTOR = [.8] * 4
-    # _INIT_PHASE_FULL_CYCLE = [0., 0.25, 0.5, 0.]
-
-    # _INIT_LEG_STATE = (
-    #     LegState.STANCE,
-    #     LegState.STANCE,
-    #     LegState.STANCE,
-    #     LegState.SWING,
-    # )
-
-    # Trotting
-    _DUTY_FACTOR = [0.6] * 4
-    _INIT_PHASE_FULL_CYCLE = [0.9, 0, 0, 0.9]
-
-    _INIT_LEG_STATE = (
-        LegState.SWING,
-        LegState.STANCE,
-        LegState.STANCE,
-        LegState.SWING,
-    )
 
     MPC_BODY_HEIGHT = 0.24
     MPC_VELOCITY_MULTIPLIER = 0.5
@@ -192,22 +147,7 @@ class A1SharedState:
         for i in range(4):
             footPositions[i] = FootPositionInHipFrame(foot_angles[i],
                                                         l_hip_sign=i)
-        return footPositions + self.HIP_OFFSETS
-    
-    def ComputeMotorAnglesFromFootLocalPosition(self, leg_id,
-                                                foot_local_position):
-                                                
-        joint_position_idxs = list(range(leg_id * 3,leg_id * 3 + 3))
-
-        joint_angles = FootPositionInHipFrameToJointAngle(
-            foot_local_position - self.HIP_OFFSETS[leg_id],
-            l_hip_sign=leg_id)
-
-        joint_angles = np.multiply(
-            joint_angles,
-            self.MOTOR_DIRECTION[joint_position_idxs])
-
-        return joint_position_idxs, joint_angles.tolist()
+        return footPositions + HIP_OFFSETS
 
 
     def GetHipPositionsInBaseFrame(self):
