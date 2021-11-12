@@ -1,12 +1,7 @@
 import numpy as np
 import math
-<<<<<<< HEAD
 from pyunitree.robots.a1.constants import HIP_OFFSETS,MOTOR_DIRECTION
 
-
-=======
-from numba import jit
->>>>>>> 5015df4c27603dfdaeb466b1b8319ca22668ae66
 def leg_kinematics(motor_angles, link_lengths, base_position):
 
     q1, q2, q3 = motor_angles
@@ -51,10 +46,6 @@ def EulerFromQuaternion(quat):
      
         return [roll_x, pitch_y, yaw_z]
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 5015df4c27603dfdaeb466b1b8319ca22668ae66
 def FootPositionInHipFrame(angles, l_hip_sign=1):
     theta_ab, theta_hip, theta_knee = angles[0], angles[1], angles[2]
 
