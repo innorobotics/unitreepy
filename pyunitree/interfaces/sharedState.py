@@ -209,7 +209,6 @@ class A1SharedState:
 
         return joint_position_idxs, joint_angles.tolist()
 
-
     def GetHipPositionsInBaseFrame(self):
         return self._DEFAULT_HIP_POSITIONS
 

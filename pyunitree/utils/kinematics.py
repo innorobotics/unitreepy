@@ -1,6 +1,6 @@
 import numpy as np
 import math
-
+from numba import jit
 def leg_kinematics(motor_angles, link_lengths, base_position):
 
     q1, q2, q3 = motor_angles
@@ -45,38 +45,15 @@ def EulerFromQuaternion(quat):
      
         return [roll_x, pitch_y, yaw_z]
 
-def RotFromQuaternion(quat):
-    q0 = quat[0]
-    q1 = quat[1]
-    q2 = quat[2]
-    q3 = quat[3]
-     
-    # First row of the rotation matrix
-    r00 = 2 * (q0 * q0 + q1 * q1) - 1
-    r01 = 2 * (q1 * q2 - q0 * q3)
-    r02 = 2 * (q1 * q3 + q0 * q2)
-     
-    # Second row of the rotation matrix
-    r10 = 2 * (q1 * q2 + q0 * q3)
-    r11 = 2 * (q0 * q0 + q2 * q2) - 1
-    r12 = 2 * (q2 * q3 - q0 * q1)
-     
-    # Third row of the rotation matrix
-    r20 = 2 * (q1 * q3 - q0 * q2)
-    r21 = 2 * (q2 * q3 + q0 * q1)
-    r22 = 2 * (q0 * q0 + q3 * q3) - 1
-     
-    return np.array([[r00, r01, r02],
-                    [r10, r11, r12],
-                    [r20, r21, r22]])
 
 def FootPositionInHipFrame(angles, l_hip_sign=1):
     theta_ab, theta_hip, theta_knee = angles[0], angles[1], angles[2]
+
     l_up = 0.2
     l_low = 0.2
     l_hip = 0.08505 * ((-1)**(l_hip_sign + 1))
-    leg_distance = np.sqrt(l_up**2 + l_low**2 +
-                            2 * l_up * l_low * math.cos(theta_knee))
+
+    leg_distance = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * math.cos(theta_knee))
     eff_swing = theta_hip + theta_knee / 2
 
     off_x_hip = -leg_distance * math.sin(eff_swing)
@@ -90,21 +67,23 @@ def FootPositionInHipFrame(angles, l_hip_sign=1):
     off_y = theta_ab_cos * off_y_hip - theta_ab_sin * off_z_hip
     off_z = theta_ab_sin * off_y_hip + theta_ab_cos * off_z_hip
     return [off_x, off_y, off_z]
-
+    
 def FootPositionInHipFrameToJointAngle(foot_position, l_hip_sign=1):
     l_up = 0.2
     l_low = 0.2
     l_hip = 0.08505 * ((-1)**(l_hip_sign + 1))
     x, y, z = foot_position[0], foot_position[1], foot_position[2]
-    theta_knee = -np.arccos(
+    theta_knee = -math.acos(
         (x**2 + y**2 + z**2 - l_hip**2 - l_low**2 - l_up**2) /
         (2 * l_low * l_up))
-    l = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(theta_knee))
-    theta_hip = np.arcsin(-x / l) - theta_knee / 2
-    c1 = l_hip * y - l * np.cos(theta_hip + theta_knee / 2) * z
-    s1 = l * np.cos(theta_hip + theta_knee / 2) * y + l_hip * z
-    theta_ab = np.arctan2(s1, c1)
-    return np.array([theta_ab, theta_hip, theta_knee])
+
+    l = math.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * math.cos(theta_knee))
+
+    theta_hip = math.asin(-x / l) - theta_knee / 2
+    c1 = l_hip * y - l * math.cos(theta_hip + theta_knee / 2) * z
+    s1 = l * math.cos(theta_hip + theta_knee / 2) * y + l_hip * z
+    theta_ab = math.atan2(s1, c1)
+    return [theta_ab, theta_hip, theta_knee]
 
 def AnalyticalLegJacobian(leg_angles, sign):
     """
