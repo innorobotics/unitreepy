@@ -149,7 +149,6 @@ class A1SharedState:
                                                         l_hip_sign=i)
         return footPositions + HIP_OFFSETS
 
-
     def GetHipPositionsInBaseFrame(self):
         return self._DEFAULT_HIP_POSITIONS
 
