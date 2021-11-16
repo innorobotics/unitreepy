@@ -1,5 +1,4 @@
 import numpy as np
-import math
 from pyunitree.robots.a1.constants import HIP_OFFSETS,MOTOR_DIRECTION
 
 def leg_kinematics(motor_angles, link_lengths, base_position):
@@ -33,16 +32,16 @@ def EulerFromQuaternion(quat):
         x,y,z,w = quat
         t0 = +2.0 * (w * x + y * z)
         t1 = +1.0 - 2.0 * (x * x + y * y)
-        roll_x = math.atan2(t0, t1)
+        roll_x = np.arctan2(t0, t1)
      
         t2 = +2.0 * (w * y - z * x)
         t2 = +1.0 if t2 > +1.0 else t2
         t2 = -1.0 if t2 < -1.0 else t2
-        pitch_y = math.asin(t2)
+        pitch_y = np.arcsin(t2)
      
         t3 = +2.0 * (w * z + x * y)
         t4 = +1.0 - 2.0 * (y * y + z * z)
-        yaw_z = math.atan2(t3, t4)
+        yaw_z = np.arctan2(t3, t4)
      
         return [roll_x, pitch_y, yaw_z]
 
@@ -53,15 +52,15 @@ def FootPositionInHipFrame(angles, l_hip_sign=1):
     l_low = 0.2
     l_hip = 0.08505 * ((-1)**(l_hip_sign + 1))
 
-    leg_distance = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * math.cos(theta_knee))
+    leg_distance = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(theta_knee))
     eff_swing = theta_hip + theta_knee / 2
 
-    off_x_hip = -leg_distance * math.sin(eff_swing)
-    off_z_hip = -leg_distance * math.cos(eff_swing)
+    off_x_hip = -leg_distance * np.sin(eff_swing)
+    off_z_hip = -leg_distance * np.cos(eff_swing)
     off_y_hip = l_hip
 
-    theta_ab_cos = math.cos(theta_ab)
-    theta_ab_sin = math.sin(theta_ab)
+    theta_ab_cos = np.cos(theta_ab)
+    theta_ab_sin = np.sin(theta_ab)
     
     off_x = off_x_hip
     off_y = theta_ab_cos * off_y_hip - theta_ab_sin * off_z_hip
@@ -73,16 +72,16 @@ def FootPositionInHipFrameToJointAngle(foot_position, l_hip_sign=1):
     l_low = 0.2
     l_hip = 0.08505 * ((-1)**(l_hip_sign + 1))
     x, y, z = foot_position[0], foot_position[1], foot_position[2]
-    theta_knee = -math.acos(
+    theta_knee = -np.arccos(
         (x**2 + y**2 + z**2 - l_hip**2 - l_low**2 - l_up**2) /
         (2 * l_low * l_up))
 
-    l = math.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * math.cos(theta_knee))
+    l = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(theta_knee))
 
-    theta_hip = math.asin(-x / l) - theta_knee / 2
-    c1 = l_hip * y - l * math.cos(theta_hip + theta_knee / 2) * z
-    s1 = l * math.cos(theta_hip + theta_knee / 2) * y + l_hip * z
-    theta_ab = math.atan2(s1, c1)
+    theta_hip = np.arcsin(-x / l) - theta_knee / 2
+    c1 = l_hip * y - l * np.cos(theta_hip + theta_knee / 2) * z
+    s1 = l * np.cos(theta_hip + theta_knee / 2) * y + l_hip * z
+    theta_ab = np.arctan2(s1, c1)
     return [theta_ab, theta_hip, theta_knee]
 
 def ComputeMotorAnglesFromFootLocalPosition(leg_id,
@@ -112,19 +111,19 @@ def AnalyticalLegJacobian(leg_angles, sign):
     l_hip = 0.08505 * (-1)**(sign + 1)
 
     t1, t2, t3 = leg_angles[0], leg_angles[1], leg_angles[2]
-    l_eff = math.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * math.cos(t3))
+    l_eff = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(t3))
     t_eff = t2 + t3 / 2
     J = np.zeros((3, 3))
     J[0, 0] = 0
-    J[0, 1] = -l_eff * math.cos(t_eff)
-    J[0, 2] = l_low * l_up * math.sin(t3) * math.sin(t_eff) / l_eff - l_eff * math.cos(
+    J[0, 1] = -l_eff * np.cos(t_eff)
+    J[0, 2] = l_low * l_up * np.sin(t3) * np.sin(t_eff) / l_eff - l_eff * np.cos(
         t_eff) / 2
-    J[1, 0] = -l_hip * math.sin(t1) + l_eff * math.cos(t1) * math.cos(t_eff)
-    J[1, 1] = -l_eff * math.sin(t1) * math.sin(t_eff)
-    J[1, 2] = -l_low * l_up * math.sin(t1) * math.sin(t3) * math.cos(
-        t_eff) / l_eff - l_eff * math.sin(t1) * math.sin(t_eff) / 2
-    J[2, 0] = l_hip * math.cos(t1) + l_eff * math.sin(t1) * math.cos(t_eff)
-    J[2, 1] = l_eff * math.sin(t_eff) * math.cos(t1)
-    J[2, 2] = l_low * l_up * math.sin(t3) * math.cos(t1) * math.cos(
-        t_eff) / l_eff + l_eff * math.sin(t_eff) * math.cos(t1) / 2
+    J[1, 0] = -l_hip * np.sin(t1) + l_eff * np.cos(t1) * np.cos(t_eff)
+    J[1, 1] = -l_eff * np.sin(t1) * np.sin(t_eff)
+    J[1, 2] = -l_low * l_up * np.sin(t1) * np.sin(t3) * np.cos(
+        t_eff) / l_eff - l_eff * np.sin(t1) * np.sin(t_eff) / 2
+    J[2, 0] = l_hip * np.cos(t1) + l_eff * np.sin(t1) * np.cos(t_eff)
+    J[2, 1] = l_eff * np.sin(t_eff) * np.cos(t1)
+    J[2, 2] = l_low * l_up * np.sin(t3) * np.cos(t1) * np.cos(
+        t_eff) / l_eff + l_eff * np.sin(t_eff) * np.cos(t1) / 2
     return J
