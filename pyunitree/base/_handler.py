@@ -117,7 +117,7 @@ class RobotHandler(LowLevelParser, Daemon):
         if self.quaternion is None:
             return
 
-        np.copyto(self.rawRemoteBuffer,np.frombuffer(self.wirelessRemote,dtype=np.float32))
+        np.copyto(self.rawRemoteBuffer,np.frombuffer(np.array(self.wirelessRemote),dtype=np.float32))
         np.copyto(self.rawStateBuffer, compressedState)
 
 
