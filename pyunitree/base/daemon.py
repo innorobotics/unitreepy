@@ -2,6 +2,7 @@ from multiprocessing import Process
 from multiprocessing.sharedctypes import RawValue
 from time import perf_counter,sleep
 from logging import info
+import sys
 import numpy as np
 
 
@@ -59,7 +60,15 @@ class Daemon:
         except KeyboardInterrupt:
             info(f"Process {self.name} was interrupted")
         except Exception as e:
-            info(f"Daemon process {self.name} was interrupted by an exception inside the handler: \n{e}")
+            exception_type, exception_object, exception_traceback = sys.exc_info()
+            filename = exception_traceback.tb_frame.f_code.co_filename
+            line_number = exception_traceback.tb_lineno
+
+            info(f"Daemon process {self.name} was interrupted by an exception inside the handler \n \
+                Exception type: {exception_type}\n \
+                File name: {filename} \n \
+                Line number: {line_number}")
+
 
 
 
