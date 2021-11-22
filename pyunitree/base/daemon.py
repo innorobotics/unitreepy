@@ -4,7 +4,7 @@ from time import perf_counter,sleep
 from logging import info
 import sys
 import numpy as np
-
+import traceback
 
 try:
     from multiprocessing.shared_memory import SharedMemory
@@ -65,9 +65,7 @@ class Daemon:
             line_number = exception_traceback.tb_lineno
 
             info(f"Daemon process {self.name} was interrupted by an exception inside the handler \n \
-                Exception type: {exception_type}\n \
-                File name: {filename} \n \
-                Line number: {line_number}")
+                Exception: \n {traceback.format_exception(type(e), e, e.__traceback__).join()}")
 
 
 
