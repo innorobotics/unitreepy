@@ -1,8 +1,8 @@
 from logging import info
 import numpy as np
 from scipy.spatial.transform import Rotation as R
-from pyunitree.utils.kinematics import FootPositionInHipFrame,EulerFromQuaternion
-from pyunitree.robots.a1.constants import POSITION_GAINS,DAMPING_GAINS,HIP_OFFSETS
+from pyunitree.utils.kinematics import EulerFromQuaternion,QuaternionToEulerMatrix
+from pyunitree.robots.a1.constants import POSITION_GAINS,DAMPING_GAINS
 from pyunitree.base.daemon import SHM_IMPORTED
 from pyunitree.parsers.remote import WirelessRemote
 
@@ -116,7 +116,7 @@ class A1SharedState:
         return [q[1],q[2],q[3],q[0]]
     
     def GetBaseOrientationMatrix(self):
-        return R.from_quat(self.GetBaseOrientationQuaternion()).as_matrix()
+        QuaternionToEulerMatrix(self.GetBaseOrientationQuaternion())
 
     def GetBaseRollPitchYaw(self):
         return EulerFromQuaternion(self.GetBaseOrientationQuaternion())

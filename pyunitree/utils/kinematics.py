@@ -1,4 +1,5 @@
 import numpy as np
+import math
 from pyunitree.robots.a1.constants import HIP_OFFSETS,MOTOR_DIRECTION
 
 def leg_kinematics(motor_angles, link_lengths, base_position):
@@ -27,6 +28,15 @@ def leg_kinematics(motor_angles, link_lengths, base_position):
                              [s23, -s1*c23, c1*c23]])
 
     return position, jacobian, rotation_matrix
+
+def QuaternionToEulerMatrix(q):
+    x = q[0]
+    y = q[1]
+    z = q[2]
+    w = q[3]
+    return  2*np.array([[ 0.5-y**2-z**2, x*y+w*z  , x*z-w*y],
+                        [ x*y-w*z  , 0.5-x**2-z**2, y*z+w*x],
+                        [ x*z+w*y  , y*z-w*x  , 0.5-x**2-y**2]])
 
 def EulerFromQuaternion(quat):
         x,y,z,w = quat
@@ -72,16 +82,17 @@ def FootPositionInHipFrameToJointAngle(foot_position, l_hip_sign=1):
     l_low = 0.2
     l_hip = 0.08505 * ((-1)**(l_hip_sign + 1))
     x, y, z = foot_position[0], foot_position[1], foot_position[2]
-    theta_knee = -np.arccos(
+
+    theta_knee = -math.acos(
         (x**2 + y**2 + z**2 - l_hip**2 - l_low**2 - l_up**2) /
         (2 * l_low * l_up))
 
-    l = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(theta_knee))
+    l = math.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(theta_knee))
 
-    theta_hip = np.arcsin(-x / l) - theta_knee / 2
-    c1 = l_hip * y - l * np.cos(theta_hip + theta_knee / 2) * z
-    s1 = l * np.cos(theta_hip + theta_knee / 2) * y + l_hip * z
-    theta_ab = np.arctan2(s1, c1)
+    theta_hip = math.asin(-x / l) - theta_knee / 2
+    c1 = l_hip * y - l * math.cos(theta_hip + theta_knee / 2) * z
+    s1 = l * math.cos(theta_hip + theta_knee / 2) * y + l_hip * z
+    theta_ab = math.atan2(s1, c1)
     return [theta_ab, theta_hip, theta_knee]
 
 def ComputeMotorAnglesFromFootLocalPosition(leg_id,
@@ -89,13 +100,13 @@ def ComputeMotorAnglesFromFootLocalPosition(leg_id,
                                                 
         joint_position_idxs = list(range(leg_id * 3,leg_id * 3 + 3))
 
-        joint_angles = FootPositionInHipFrameToJointAngle(
-            foot_local_position - HIP_OFFSETS[leg_id],
-            l_hip_sign=leg_id)
-
-        joint_angles = np.multiply(
-            joint_angles,
-            MOTOR_DIRECTION[joint_position_idxs])
+        try:
+            joint_angles = FootPositionInHipFrameToJointAngle(
+                foot_local_position - HIP_OFFSETS[leg_id],
+                l_hip_sign=leg_id)
+        except:
+            joint_angles = [math.nan,math.nan,math.nan]
+        joint_angles = joint_angles*MOTOR_DIRECTION[joint_position_idxs]
 
         return joint_position_idxs, joint_angles.tolist()
 
