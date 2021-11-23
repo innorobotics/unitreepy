@@ -63,9 +63,10 @@ class Daemon:
             exception_type, exception_object, exception_traceback = sys.exc_info()
             filename = exception_traceback.tb_frame.f_code.co_filename
             line_number = exception_traceback.tb_lineno
-
+            
+            exception = traceback.format_exception(type(e), e, e.__traceback__)
             info(f"Daemon process {self.name} was interrupted by an exception inside the handler \n \
-                Exception: \n {traceback.format_exception(type(e), e, e.__traceback__).join()}")
+                Exception: \n {''.join(exception)}")
 
 
 

@@ -116,7 +116,7 @@ class A1SharedState:
         return [q[1],q[2],q[3],q[0]]
     
     def GetBaseOrientationMatrix(self):
-        QuaternionToEulerMatrix(self.GetBaseOrientationQuaternion())
+        return QuaternionToEulerMatrix(self.GetBaseOrientationQuaternion())
 
     def GetBaseRollPitchYaw(self):
         return EulerFromQuaternion(self.GetBaseOrientationQuaternion())
