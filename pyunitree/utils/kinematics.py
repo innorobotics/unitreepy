@@ -127,3 +127,32 @@ def AnalyticalLegJacobian(leg_angles, sign):
     J[2, 2] = l_low * l_up * np.sin(t3) * np.cos(t1) * np.cos(
         t_eff) / l_eff + l_eff * np.sin(t_eff) * np.cos(t1) / 2
     return J
+
+def CompactAnalyticalJacobian(leg_angles, sign):
+    """
+    Computes the analytical Jacobian in a single vector
+    Args:
+    ` leg_angles: a list of 3 numbers for current abduction, hip and knee angle.
+    sign: whether it's a left (1) or right(-1) leg.
+    """
+    l_up = 0.2
+    l_low = 0.2
+    l_hip = 0.08505 * (-1)**(sign + 1)
+
+    t1, t2, t3 = leg_angles[0], leg_angles[1], leg_angles[2]
+    l_eff = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(t3))
+    t_eff = t2 + t3 / 2
+    J = np.zeros(9)
+    J[0] = 0
+    J[1] = -l_eff * np.cos(t_eff)
+    J[2] = l_low * l_up * np.sin(t3) * np.sin(t_eff) / l_eff - l_eff * np.cos(
+        t_eff) / 2
+    J[3] = -l_hip * np.sin(t1) + l_eff * np.cos(t1) * np.cos(t_eff)
+    J[4] = -l_eff * np.sin(t1) * np.sin(t_eff)
+    J[5] = -l_low * l_up * np.sin(t1) * np.sin(t3) * np.cos(
+        t_eff) / l_eff - l_eff * np.sin(t1) * np.sin(t_eff) / 2
+    J[6] = l_hip * np.cos(t1) + l_eff * np.sin(t1) * np.cos(t_eff)
+    J[7] = l_eff * np.sin(t_eff) * np.cos(t1)
+    J[8] = l_low * l_up * np.sin(t3) * np.cos(t1) * np.cos(
+        t_eff) / l_eff + l_eff * np.sin(t_eff) * np.cos(t1) / 2
+    return J
