@@ -8,6 +8,17 @@ from pyunitree.parsers.remote import WirelessRemote
 
 
 class A1SharedState:
+    MPC_BODY_MASS = 108 / 9.8
+    MPC_BODY_INERTIA = np.array((0.24, 0, 0, 0, 0.80, 0, 0, 0, 1.00))
+
+    _DEFAULT_HIP_POSITIONS = (
+        (0.17, -0.135, 0),
+        (0.17, 0.13, 0),
+        (-0.195, -0.135, 0),
+        (-0.195, 0.13, 0),
+    )
+
+    '''
     MPC_BODY_MASS = 13.52
     MPC_BODY_INERTIA = np.array((0.032, 0, 0, 0, 0.283, 0, 0, 0, 0.308))
 
@@ -17,6 +28,7 @@ class A1SharedState:
         (-0.1805, -0.047, 0),
         (-0.1805, 0.047, 0),
     )
+    '''
     
     KPS = POSITION_GAINS
     KDS = DAMPING_GAINS
