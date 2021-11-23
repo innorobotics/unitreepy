@@ -86,8 +86,8 @@ MOTOR_INERTIAS = None
 MOTOR_DAMPING = None
 
 COM_OFFSET = -np.array([0.012731, 0.002186, 0.000515])
-HIP_OFFSETS = np.array([[0.183, -0.047, 0.], [0.183, 0.047, 0.],
-                        [-0.183, -0.047, 0.], [-0.183, 0.047, 0.]
+HIP_OFFSETS = np.array([[0.1805, -0.047, 0.], [0.1805, 0.047, 0.],
+                        [-0.1805, -0.047, 0.], [-0.1805, 0.047, 0.]
                         ]) + COM_OFFSET
 MOTOR_DIRECTION = np.ones(12)
 
