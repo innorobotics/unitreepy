@@ -2,7 +2,9 @@ from multiprocessing.sharedctypes import RawValue
 from pyunitree.parsers.gazebo import GazeboMsgParser
 from pyunitree.robots.a1.constants import INIT_ANGLES,POSITION_GAINS,DAMPING_GAINS
 from pyunitree.utils._pos_profiles import p2p_cos_profile
-
+from gazebo_msgs.srv import SetPhysicsProperties, GetPhysicsProperties
+from geometry_msgs.msg import Vector3
+from std_msgs.msg import Float64
 import rospy
 from unitree_legged_msgs.msg import MotorCmd,MotorState
 from sensor_msgs.msg import Imu
@@ -197,3 +199,16 @@ class GazeboInterface(Daemon):
                 
     def move_to_init(self):
         self.move_to(np.array(INIT_ANGLES))
+
+    def slowDownSim(self,dt=0.001, updateRate = 1000):
+        set_physics = rospy.ServiceProxy('/gazebo/set_physics_properties', SetPhysicsProperties)
+        get_physics = rospy.ServiceProxy('/gazebo/get_physics_properties', GetPhysicsProperties)
+        time_step = Float64(dt) #max_time_step
+        max_update_rate = Float64(updateRate)
+        gravity = Vector3()
+        gravity.x = 0.0
+        gravity.y = 0.0
+        gravity.z = -9.8
+        ode_config = get_physics().ode_config
+        set_physics(time_step.data, max_update_rate.data, gravity, ode_config)
+
