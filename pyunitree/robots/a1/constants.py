@@ -73,7 +73,7 @@ LEGS_BASES = {'FR': [TRUNK_LENGTH/2, -TRUNK_WIDTH/2],
               'RR': [-TRUNK_LENGTH/2, -TRUNK_WIDTH/2],
               'RL': [-TRUNK_LENGTH/2, TRUNK_WIDTH/2]}
 
-LEG_LINKS_LENGTH = {'FR': [0.0838, 0.2, 0.2],
+LEG_LINKS_LENGTH = {'FR': [0.0838, 0.2, 0.2], # Here the sign of the first offset is OK with 'leg_kinematics' but not clear at first 
                     'FL': [-0.0838, 0.2, 0.2],
                     'RR': [0.0838, 0.2, 0.2],
                     'RL': [-0.0838, 0.2, 0.2]}
@@ -85,15 +85,11 @@ BODY_INERTIA = None
 MOTOR_INERTIAS = None
 MOTOR_DAMPING = None
 
-COM_OFFSET = -np.array([0.012731, 0.002186, 0.000515])
-HIP_OFFSETS = np.array([[0.183, -0.047, 0.], [0.183, 0.047, 0.],
-                        [-0.183, -0.047, 0.], [-0.183, 0.047, 0.]
-                        ]) + COM_OFFSET
-'''
-COM_OFFSET = -np.array([0.012731, 0.002186, 0.000515])
+COM_OFFSET = -np.array([-0.022, 0.0019, 0.0]) #decrease x to shift forward, increase y to shift right
+# COM_OFFSET = -np.array([0.0, 0.0, 0.0])
 HIP_OFFSETS = np.array([[0.1805, -0.047, 0.], [0.1805, 0.047, 0.],
-[-0.1805, -0.047, 0.], [-0.1805, 0.047, 0.]
-]) + COM_OFFSET
-'''
+                        [-0.1805, -0.047, 0.], [-0.1805, 0.047, 0.]
+                        ]) + COM_OFFSET
+
 MOTOR_DIRECTION = np.ones(12)
 
