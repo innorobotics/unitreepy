@@ -16,6 +16,9 @@ import numpy as np
 
 from pyunitree.base.daemon import Daemon
 from multiprocessing import Manager
+
+SIM_BASE_TIME_STEP = 0.001 # base timestep in Gazebo
+SIM_BASE_RATE = 1000 # base timestep in Gazebo
     
 class GazeboInterface(Daemon):
     controllerNames  =  [
@@ -200,11 +203,12 @@ class GazeboInterface(Daemon):
     def move_to_init(self):
         self.move_to(np.array(INIT_ANGLES))
 
-    def slowDownSim(self,dt=0.001, updateRate = 1000):
+    def slowDownSim(self,sim_slowdown=1):        
         set_physics = rospy.ServiceProxy('/gazebo/set_physics_properties', SetPhysicsProperties)
         get_physics = rospy.ServiceProxy('/gazebo/get_physics_properties', GetPhysicsProperties)
-        time_step = Float64(dt) #max_time_step
-        max_update_rate = Float64(updateRate)
+        # Slowdown by decreasing update rate
+        time_step = Float64(SIM_BASE_TIME_STEP) #max_time_step
+        max_update_rate = Float64(SIM_BASE_RATE/sim_slowdown)
         gravity = Vector3()
         gravity.x = 0.0
         gravity.y = 0.0
