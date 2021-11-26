@@ -55,13 +55,14 @@ def EulerFromQuaternion(quat):
      
         return [roll_x, pitch_y, yaw_z]
 
+#HIP_COEFFICIENT = 0.08505 #original motion imitation
+HIP_COEFFICIENT = 0.0838
 def FootPositionInHipFrame(angles, l_hip_sign=1):
     theta_ab, theta_hip, theta_knee = angles[0], angles[1], angles[2]
 
     l_up = 0.2
     l_low = 0.2
-    # l_hip = 0.08505 * ((-1)**(l_hip_sign + 1))
-    l_hip = 0.0838 * ((-1)**(l_hip_sign + 1))
+    l_hip = HIP_COEFFICIENT * ((-1)**(l_hip_sign + 1))
 
     leg_distance = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(theta_knee))
     eff_swing = theta_hip + theta_knee / 2
@@ -81,7 +82,7 @@ def FootPositionInHipFrame(angles, l_hip_sign=1):
 def FootPositionInHipFrameToJointAngle(foot_position, l_hip_sign=1):
     l_up = 0.2
     l_low = 0.2
-    l_hip = 0.0838 * ((-1)**(l_hip_sign + 1))
+    l_hip = HIP_COEFFICIENT * ((-1)**(l_hip_sign + 1))
     x, y, z = foot_position[0], foot_position[1], foot_position[2]
 
     theta_knee = -math.acos(
@@ -120,8 +121,7 @@ def AnalyticalLegJacobian(leg_angles, sign):
     """
     l_up = 0.2
     l_low = 0.2
-    # l_hip = 0.08505 * (-1)**(sign + 1)
-    l_hip = 0.0838 * (-1)**(sign + 1)
+    l_hip = HIP_COEFFICIENT* (-1)**(sign + 1)
     t1, t2, t3 = leg_angles[0], leg_angles[1], leg_angles[2]
     l_eff = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(t3))
     t_eff = t2 + t3 / 2
@@ -149,8 +149,7 @@ def CompactAnalyticalJacobian(leg_angles, sign):
     """
     l_up = 0.2
     l_low = 0.2
-    # l_hip = 0.08505 * (-1)**(sign + 1)
-    l_hip = 0.0838 * (-1)**(sign + 1)
+    l_hip = HIP_COEFFICIENT * (-1)**(sign + 1)
     t1, t2, t3 = leg_angles[0], leg_angles[1], leg_angles[2]
     l_eff = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(t3))
     t_eff = t2 + t3 / 2
