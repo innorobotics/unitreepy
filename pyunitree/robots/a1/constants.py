@@ -111,5 +111,6 @@ BASE_TO_HIPS = np.array([[0.1805, -0.047, 0.], [0.1805, 0.047, 0.],
 COM_TO_HIPS = np.array([[0.1805, -0.047, 0.], [0.1805, 0.047, 0.],
                         [-0.1805, -0.047, 0.], [-0.1805, 0.047, 0.]
                         ])+ COM_OFFSET
+ANGLE_DIRECTION = np.ones((4,3)) # +1 means rotation is around original X or Y axes
 
 
