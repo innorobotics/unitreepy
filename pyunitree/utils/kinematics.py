@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from pyunitree.robots.a1.constants import HIP_OFFSETS,MOTOR_DIRECTION
+from pyunitree.robots.a1.constants import LEG_LENGTH, BASE_TO_HIPS, COM_TO_HIPS
 
 def leg_kinematics(motor_angles, link_lengths, base_position):
 
@@ -167,3 +168,61 @@ def CompactAnalyticalJacobian(leg_angles, sign):
     J[8] = l_low * l_up * np.sin(t3) * np.cos(t1) * np.cos(
         t_eff) / l_eff + l_eff * np.sin(t_eff) * np.cos(t1) / 2
     return J
+
+
+    # MAKE THINGS CLEAR
+
+    """
+    There are the following CSs in robot:
+    Base Frame is located in the center of the robot with x axis directed forward and z axis directed upward
+    Hip Frame is located in the hips of the robot
+    COM Frame is located in Center of mass/
+    All three CSs are different only in TRANSLATION
+
+    Angles are in radians with order [hip joint, thigh joint, calf joint]
+    leg_id are in range(4) for [FR LR RR RL] 
+    """
+
+def AnglesFromPositionInHipFrame(leg_id, foot_position):
+    l_up = LEG_LENGTH[1]
+    l_low = LEG_LENGTH[2]
+    l_hip = LEG_LENGTH[0] * ((-1)**(leg_id + 1))
+    x, y, z = foot_position[0], foot_position[1], foot_position[2]
+
+    # Here we have two solutions for knee joint and choose the one with negative sign (more natural)
+    theta_knee = -math.acos(
+        (x**2 + y**2 + z**2 - l_hip**2 - l_low**2 - l_up**2) /
+        (2 * l_low * l_up))
+
+    l = math.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(theta_knee))
+
+    theta_hip = math.asin(-x / l) - theta_knee / 2
+    c1 = l_hip * y - l * math.cos(theta_hip + theta_knee / 2) * z
+    s1 = l * math.cos(theta_hip + theta_knee / 2) * y + l_hip * z
+    theta_ab = math.atan2(s1, c1)
+    return [theta_ab, theta_hip, theta_knee]
+
+def PositionInHipFrameFromAngles(leg_id, angles):
+    theta_ab, theta_hip, theta_knee = angles[0], angles[1], angles[2]
+
+    l_up = LEG_LENGTH[1]
+    l_low = LEG_LENGTH[2]
+    l_hip = LEG_LENGTH[0] * ((-1)**(leg_id + 1))
+
+    leg_distance = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(theta_knee))
+    eff_swing = theta_hip + theta_knee / 2
+
+    off_x_hip = -leg_distance * np.sin(eff_swing)
+    off_z_hip = -leg_distance * np.cos(eff_swing)
+    off_y_hip = l_hip
+
+    theta_ab_cos = np.cos(theta_ab)
+    theta_ab_sin = np.sin(theta_ab)
+    
+    off_x = off_x_hip
+    off_y = theta_ab_cos * off_y_hip - theta_ab_sin * off_z_hip
+    off_z = theta_ab_sin * off_y_hip + theta_ab_cos * off_z_hip
+    return [off_x, off_y, off_z]
+
+
+# print(AnglesFromPositionInHipFrame(1,PositionInHipFrameFromAngles(1,[0.15,0.22,0.35])))

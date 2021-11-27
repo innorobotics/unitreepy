@@ -101,3 +101,15 @@ HIP_OFFSETS = np.array([[0.1805, -0.047, 0.], [0.1805, 0.047, 0.],
 
 MOTOR_DIRECTION = np.ones(12)
 
+
+# MAKE THINGS CLEAR
+
+LEG_LENGTH = [0.0838, 0.2, 0.2] # [hip y-axis offset, thigh length, calf length]
+BASE_TO_HIPS = np.array([[0.1805, -0.047, 0.], [0.1805, 0.047, 0.],
+                        [-0.1805, -0.047, 0.], [-0.1805, 0.047, 0.]
+                        ])
+COM_TO_HIPS = np.array([[0.1805, -0.047, 0.], [0.1805, 0.047, 0.],
+                        [-0.1805, -0.047, 0.], [-0.1805, 0.047, 0.]
+                        ])+ COM_OFFSET
+
+
