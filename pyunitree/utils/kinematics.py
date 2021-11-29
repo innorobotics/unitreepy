@@ -2,6 +2,8 @@ import numpy as np
 import math
 from pyunitree.robots.a1.constants import HIP_OFFSETS,MOTOR_DIRECTION
 
+HIP_COEFFICIENT = 0.08505 #original motion imitation
+#HIP_COEFFICIENT = 0.0838
 def leg_kinematics(motor_angles, link_lengths, base_position):
 
     q1, q2, q3 = motor_angles
@@ -55,8 +57,6 @@ def EulerFromQuaternion(quat):
      
         return [roll_x, pitch_y, yaw_z]
 
-#HIP_COEFFICIENT = 0.08505 #original motion imitation
-HIP_COEFFICIENT = 0.0838
 def FootPositionInHipFrame(angles, l_hip_sign=1):
     theta_ab, theta_hip, theta_knee = angles[0], angles[1], angles[2]
 

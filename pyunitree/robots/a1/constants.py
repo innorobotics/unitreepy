@@ -85,19 +85,18 @@ BODY_INERTIA = None
 MOTOR_INERTIAS = None
 MOTOR_DAMPING = None
 
-'''
 #motion imitation original
-
 COM_OFFSET = -np.array([0.012731, 0.002186, 0.000515])
 HIP_OFFSETS = np.array([[0.183, -0.047, 0.], [0.183, 0.047, 0.],
                         [-0.183, -0.047, 0.], [-0.183, 0.047, 0.]
                         ]) + COM_OFFSET
+
 '''
 COM_OFFSET = -np.array([-0.022, 0.0019, 0.0]) #decrease x to shift forward, increase y to shift right
 # COM_OFFSET = -np.array([0.0, 0.0, 0.0])
 HIP_OFFSETS = np.array([[0.1805, -0.047, 0.], [0.1805, 0.047, 0.],
                         [-0.1805, -0.047, 0.], [-0.1805, 0.047, 0.]
                         ]) + COM_OFFSET
-
+'''
 MOTOR_DIRECTION = np.ones(12)
 
