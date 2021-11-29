@@ -1,6 +1,7 @@
 import numpy as np
 import math
 from pyunitree.robots.a1.constants import HIP_OFFSETS,MOTOR_DIRECTION
+from pyunitree.robots.a1.constants import LEG_LENGTH, BASE_TO_HIPS, COM_TO_HIPS, ANGLE_DIRECTION
 
 HIP_COEFFICIENT = 0.08505 #original motion imitation
 #HIP_COEFFICIENT = 0.0838
@@ -151,6 +152,112 @@ def CompactAnalyticalJacobian(leg_angles, sign):
     l_low = 0.2
     l_hip = HIP_COEFFICIENT * (-1)**(sign + 1)
     t1, t2, t3 = leg_angles[0], leg_angles[1], leg_angles[2]
+    l_eff = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(t3))
+    t_eff = t2 + t3 / 2
+    J = np.zeros(9)
+    J[0] = 0
+    J[1] = -l_eff * np.cos(t_eff)
+    J[2] = l_low * l_up * np.sin(t3) * np.sin(t_eff) / l_eff - l_eff * np.cos(
+        t_eff) / 2
+    J[3] = -l_hip * np.sin(t1) + l_eff * np.cos(t1) * np.cos(t_eff)
+    J[4] = -l_eff * np.sin(t1) * np.sin(t_eff)
+    J[5] = -l_low * l_up * np.sin(t1) * np.sin(t3) * np.cos(
+        t_eff) / l_eff - l_eff * np.sin(t1) * np.sin(t_eff) / 2
+    J[6] = l_hip * np.cos(t1) + l_eff * np.sin(t1) * np.cos(t_eff)
+    J[7] = l_eff * np.sin(t_eff) * np.cos(t1)
+    J[8] = l_low * l_up * np.sin(t3) * np.cos(t1) * np.cos(
+        t_eff) / l_eff + l_eff * np.sin(t_eff) * np.cos(t1) / 2
+    return J
+
+
+    # MAKE THINGS CLEAR
+
+    """
+    There are the following CSs in robot:
+    Base Frame is located in the center of the robot with x axis directed forward and z axis directed upward
+    Hip Frame is located in the hips of the robot
+    COM Frame is located in Center of mass
+    All three CSs are different only in TRANSLATION
+
+    Angles are in radians with order [hip joint, thigh joint, calf joint]
+    leg_id are in range(4) for [FR LR RR RL] 
+    """
+
+def AnglesFromPositionInHipFrame(leg_id, foot_position):
+    l_up = LEG_LENGTH[1]
+    l_low = LEG_LENGTH[2]
+    l_hip = LEG_LENGTH[0] * ((-1)**(leg_id + 1))
+    x, y, z = foot_position[0], foot_position[1], foot_position[2]
+
+    # Check if solution of IK exists
+    try:
+        # Here we have two solutions for knee joint and choose the one with negative sign (more natural)
+        theta_knee = ANGLE_DIRECTION[leg_id,2] * -math.acos(
+            (x**2 + y**2 + z**2 - l_hip**2 - l_low**2 - l_up**2) /
+            (2 * l_low * l_up))
+
+        l = math.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * math.cos(theta_knee))
+
+        theta_hip = ANGLE_DIRECTION[leg_id,1] * (math.asin(-x / l) - theta_knee / 2)
+        c1 = l_hip * y - l * math.cos(theta_hip + theta_knee / 2) * z
+        s1 = l * math.cos(theta_hip + theta_knee / 2) * y + l_hip * z
+        theta_ab = ANGLE_DIRECTION[leg_id,0] * math.atan2(s1, c1)
+    except:
+        theta_ab = math.nan
+        theta_hip = math.nan
+        theta_knee = math.nan
+
+    return [theta_ab, theta_hip, theta_knee]
+
+def PositionInHipFrameFromAngles(leg_id, angles):
+    theta_ab, theta_hip, theta_knee = ANGLE_DIRECTION[leg_id,0] * angles[0], \
+                                      ANGLE_DIRECTION[leg_id,1] * angles[1], \
+                                      ANGLE_DIRECTION[leg_id,2] * angles[2]
+
+    l_up = LEG_LENGTH[1]
+    l_low = LEG_LENGTH[2]
+    l_hip = LEG_LENGTH[0] * ((-1)**(leg_id + 1))
+
+    leg_distance = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(theta_knee))
+    eff_swing = theta_hip + theta_knee / 2
+
+    off_x_hip = -leg_distance * np.sin(eff_swing)
+    off_z_hip = -leg_distance * np.cos(eff_swing)
+    off_y_hip = l_hip
+
+    theta_ab_cos = np.cos(theta_ab)
+    theta_ab_sin = np.sin(theta_ab)
+    
+    off_x = off_x_hip
+    off_y = theta_ab_cos * off_y_hip - theta_ab_sin * off_z_hip
+    off_z = theta_ab_sin * off_y_hip + theta_ab_cos * off_z_hip
+    return [off_x, off_y, off_z]
+
+def PositionInBaseFrameFromAngles(leg_id, angles):
+    return PositionInHipFrameFromAngles(leg_id, angles) + BASE_TO_HIPS[leg_id]
+
+def PositionInCOMFrameFromAngles(leg_id, angles):
+    return PositionInHipFrameFromAngles(leg_id, angles) + COM_TO_HIPS[leg_id]
+
+def AnglesFromPositionInBaseFrame(leg_id, foot_position):
+    return AnglesFromPositionInHipFrame(leg_id, foot_position - BASE_TO_HIPS[leg_id])
+
+def AnglesFromPositionInCOMFrame(leg_id, foot_position):
+    return AnglesFromPositionInHipFrame(leg_id, foot_position - COM_TO_HIPS[leg_id])
+
+def ComputeJacobian(leg_id, angles):
+    """
+    Computes the analytical Jacobian in a single vector
+    Args:
+    ` leg_angles: a list of 3 numbers for current abduction, hip and knee angle.
+    sign: whether it's a left (1) or right(-1) leg.
+    """
+    l_up = LEG_LENGTH[1]
+    l_low = LEG_LENGTH[2]
+    l_hip = LEG_LENGTH[0] * ((-1)**(leg_id + 1))
+    t1, t2, t3 = ANGLE_DIRECTION[leg_id,0] * angles[0], \
+                                      ANGLE_DIRECTION[leg_id,1] * angles[1], \
+                                      ANGLE_DIRECTION[leg_id,2] * angles[2]
     l_eff = np.sqrt(l_up**2 + l_low**2 + 2 * l_up * l_low * np.cos(t3))
     t_eff = t2 + t3 / 2
     J = np.zeros(9)
