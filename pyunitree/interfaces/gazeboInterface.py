@@ -1,9 +1,14 @@
+import logging
 from multiprocessing.sharedctypes import RawValue
 from pyunitree.parsers.gazebo import GazeboMsgParser
 from pyunitree.robots.a1.constants import INIT_ANGLES,POSITION_GAINS,DAMPING_GAINS
 from pyunitree.utils._pos_profiles import p2p_cos_profile
 from gazebo_msgs.srv import SetPhysicsProperties, GetPhysicsProperties
+from gazebo_msgs.msg import LinkStates
 from geometry_msgs.msg import Vector3
+from xpp_msgs.msg import State6d,RobotStateJoint,StateLin3d, RobotStateCartesian
+from geometry_msgs.msg import Vector3
+from sensor_msgs.msg import JointState
 from std_msgs.msg import Float64
 import rospy
 from unitree_legged_msgs.msg import MotorCmd,MotorState
@@ -13,6 +18,9 @@ from geometry_msgs.msg import WrenchStamped
 from logging import info
 import time
 import numpy as np
+
+from pyunitree.robots.a1.constants import HIP_OFFSETS
+from pyunitree.utils.kinematics import FootPositionInHipFrame, QuaternionToEulerMatrix
 
 from pyunitree.base.daemon import Daemon
 from multiprocessing import Manager
@@ -62,7 +70,7 @@ class GazeboInterface(Daemon):
     #Maps joint name to it's location in position and velocity idx in joint state
     motorMappings = {name:i for i,name in enumerate(motorNames)}
 
-    def __init__(self,updateRate = -1,name = "Gazebo state listener"):
+    def __init__(self,updateRate = -1,name = "Gazebo state listener",publishXPP = False):
         super(GazeboInterface,self).__init__(updateRate,name)
         
         self.parser = GazeboMsgParser()
@@ -73,6 +81,21 @@ class GazeboInterface(Daemon):
         self.imu = [0]*10
         self.time = 0
         self.initTime = 0
+        self.baseState = [0]*7
+        self.baseIdx = -1
+        self.footPos = np.zeros(12)
+        self.footNames = ["a1_gazebo::FL_foot","a1_gazebo::FR_foot","a1_gazebo::RL_foot","a1_gazebo::RR_foot"]
+        self.footIdx = []
+
+
+        self.publishXPP = publishXPP
+        if self.publishXPP:
+            self.jointState,self.robotState = RobotStateJoint(), RobotStateCartesian()
+            self.jointState.joint_state.name = self.motorNames
+            self.robotState.ee_motion = [StateLin3d(),StateLin3d(),StateLin3d(),StateLin3d()]
+            self.robotState.ee_forces = [Vector3(),Vector3(),Vector3(),Vector3()]
+            self.jointState.ee_contact = [False]*4
+            self.robotState.ee_contact = [False]*4
 
         self.__shared = Manager().Namespace()
         self.__shared.cmd = [0]*60
@@ -84,7 +107,7 @@ class GazeboInterface(Daemon):
 
         self.stateIsValid = RawValue("b",False)
         self.rawRemotePtr = None
-        self.initSharedStateArray(39,"RobotState")
+        self.initSharedStateArray(self.sharedStateSize,"RobotState")
 
     def processInit(self):
         self.node = rospy.init_node('unitreepy_node')
@@ -99,6 +122,10 @@ class GazeboInterface(Daemon):
 
         self.servoPublishers = [rospy.Publisher(controllerName+"/command", MotorCmd) 
                                                             for controllerName in GazeboInterface.controllerNames]
+        if self.publishXPP:
+            self.baseStateSub = rospy.Subscriber("/gazebo/link_states", LinkStates, self.baseStateCallback)
+            self.jointPublisher = rospy.Publisher("/xpp/joint_a1_des", RobotStateJoint,queue_size=10) 
+            self.robotPublisher = rospy.Publisher("/xpp/state_des", RobotStateCartesian,queue_size=10) 
 
         self.initTime = rospy.get_time()
         info("Unitreepy Gazebo listener: Attempting to receive initial position from Gazebo")
@@ -107,8 +134,42 @@ class GazeboInterface(Daemon):
         self.moveStateToShared()
         info("Unitreepy Gazebo listener: Initial state received")
 
+    def publishXPPCallback(self):
+        base = State6d()
+        base.pose.position.x = self.baseState[0]
+        base.pose.position.y = self.baseState[1]
+        base.pose.position.z = self.baseState[2]
+
+        base.pose.orientation.x  = self.baseState[3]
+        base.pose.orientation.y  = self.baseState[4]
+        base.pose.orientation.z  = self.baseState[5]
+        base.pose.orientation.w  = self.baseState[6]
+        
+        self.robotState.base = base
+        self.jointState.base = base
+        self.jointState.joint_state.position = self.position
+
+        for i in range(4):
+            self.robotState.ee_motion[i].pos.x = self.footPos[3*i]
+            self.robotState.ee_motion[i].pos.y = self.footPos[3*i+1]
+            self.robotState.ee_motion[i].pos.z = self.footPos[3*i+2]
+
+            self.robotState.ee_forces[i].x = self.footForces[i][0]
+            self.robotState.ee_forces[i].y = self.footForces[i][1]
+            self.robotState.ee_forces[i].z = self.footForces[i][2]
+            
+            self.jointState.ee_contact[i] = self.footForces[i][2]>9
+            self.robotState.ee_contact[i] = self.footForces[i][2]>9
+        
+
+        self.jointPublisher.publish(self.jointState)
+        self.robotPublisher.publish(self.robotState)
+
+
     def action(self):
         try:
+            if self.publishXPP:
+                self.publishXPPCallback()
             command = self.__shared.cmd
             self.time = rospy.get_time()-self.initTime
             self.moveStateToShared()
@@ -155,14 +216,29 @@ class GazeboInterface(Daemon):
         return command
 
     def moveStateToShared(self):
-
         footforce = np.array([force[2] for force in self.footForces])
-
         compressedState = np.hstack([self.imu,footforce,self.position,self.velocity,[self.time]])
-
-        # NOTE Buffer manipulation
+        #TODO:optimize buffer writitng without hstack
         np.copyto(self.rawStateBuffer, compressedState)
+    
+    def baseStateCallback(self,msg):
+        if self.baseIdx <0:
+            self.baseIdx = msg.name.index("a1_gazebo::trunk")
         
+        pose = msg.pose[self.baseIdx]
+        self.baseState[0] = pose.position.x
+        self.baseState[1] = pose.position.y
+        self.baseState[2] = pose.position.z
+
+        self.baseState[3] = pose.orientation.x
+        self.baseState[4] = pose.orientation.y
+        self.baseState[5] = pose.orientation.z
+        self.baseState[6] = pose.orientation.w
+        
+        mat = QuaternionToEulerMatrix(self.baseState[3:])
+        for i in range(4):
+            self.footPos[3*i:3*i+3] = (FootPositionInHipFrame(self.position[3*i:3*i+3],l_hip_sign=i)+HIP_OFFSETS[i])@mat+self.baseState[:3]
+
     def motorVectorCallback(self,msg,idx):
         self.position[idx] = msg.q
         self.velocity[idx] = msg.dq

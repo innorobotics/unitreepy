@@ -31,6 +31,7 @@ class RobotHandler(LowLevelParser, Daemon):
         self.__shared.command = self._zero_command
         self.__shared.process_is_working = False
 
+        self.highInterface = None
         self.set_gains(position_gains=constants.POSITION_GAINS,
                        damping_gains=constants.DAMPING_GAINS)
 

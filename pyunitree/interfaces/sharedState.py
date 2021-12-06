@@ -209,6 +209,14 @@ class A1SharedState:
 
     def GetBaseRollPitchYawRate(self,useCached=False):
         return self.getStateBuffer(useCached)[4:7].copy()
+    
+    #NOTE: DO NOT USE ON REAL ROBOT GAZEBO ONLY
+    #World space position and orientation of the robot's trunk
+    def GetBasePositionOrientationGazebo(self,useCahced=False): 
+        return self.getStateBuffer(useCahced)[39:46].copy()
+    #World space position of the robot's feet
+    def GetFootPositionGazebo(self,useCahced=False): 
+        return self.getStateBuffer(useCahced)[46:58].copy()
 
     def GetBaseAcceleration(self,useCached=False):
         return self.getStateBuffer(useCached)[7:10].copy()
