@@ -3,10 +3,9 @@ import math
 from pyunitree.robots.a1.constants import HIP_OFFSETS,MOTOR_DIRECTION
 from pyunitree.robots.a1.constants import LEG_LENGTH, BASE_TO_HIPS, COM_TO_HIPS, ANGLE_DIRECTION
 
-HIP_COEFFICIENT = 0.08505 #original motion imitation
-#HIP_COEFFICIENT = 0.0838
+#HIP_COEFFICIENT = 0.08505 #original motion imitation
+HIP_COEFFICIENT = 0.0838
 def leg_kinematics(motor_angles, link_lengths, base_position):
-
     q1, q2, q3 = motor_angles
     r0_x, r0_y = base_position
     l1, l2, l3 = link_lengths
@@ -37,9 +36,10 @@ def QuaternionToEulerMatrix(q):
     y = q[1]
     z = q[2]
     w = q[3]
-    return  2*np.array([[ 0.5-y**2-z**2, x*y+w*z  , x*z-w*y],
-                        [ x*y-w*z  , 0.5-x**2-z**2, y*z+w*x],
-                        [ x*z+w*y  , y*z-w*x  , 0.5-x**2-y**2]])
+
+    return  2*np.array([[ 0.5-y**2-z**2, x*y-w*z  , x*z+w*y],
+                        [ x*y+w*z  , 0.5-x**2-z**2, y*z-w*x],
+                        [ x*z-w*y  , y*z+w*x  , 0.5-x**2-y**2]])
 
 def EulerFromQuaternion(quat):
         x,y,z,w = quat
