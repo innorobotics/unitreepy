@@ -13,6 +13,7 @@ class A1SharedState:
     #original motion imitation
     MPC_BODY_MASS = 108 / 9.8
     MPC_BODY_INERTIA = np.array((0.24, 0, 0, 0, 0.80, 0, 0, 0, 1.00))
+    SHM_NAMES = ['rawStateShm','rawObserverShm','rawModelShm','rawRemoteShm','rawCommandShm']
     # This is actually default foot positions in robot CS
     _DEFAULT_HIP_POSITIONS = (
         (0.17, -0.135, 0),
@@ -118,27 +119,28 @@ class A1SharedState:
         self.remoteCopy = np.zeros(self.rawRemoteBuffer.shape) if self.rawRemoteBuffer is not None else None
         self.commandCopy = np.zeros(self.rawCommandBuffer.shape) if self.rawCommandBuffer is not None else None
 
-    def __del__(self):
+    def unlinkSharedMemory(self):
         if SHM_IMPORTED: 
-            if hasattr(self, 'rawStateShm'):
-                self.rawStateShm.close()
-            
-            if hasattr(self, 'rawObserverShm'):
-                self.rawObserverShm.close()
-
-            if hasattr(self, 'rawModelShm'):
-                self.rawModelShm.close()
-
-            if hasattr(self, 'rawRemoteShm'):
-                self.rawRemoteShm.close()
-            
-            if hasattr(self,'rawCommandShm'):
-                self.rawCommandShm.close()
-                if self.createdCommandShm:
+            for shm_name in self.SHM_NAMES:
+                if hasattr(self, shm_name):
                     try:
-                        self.rawCommandShm.unlink()
-                    except:
-                        info("A1SharedState failed to unlink shared memory containing the command")
+                        getattr(self,shm_name).unlink()
+                    except FileNotFoundError:
+                        info("UNLINK: Shared memory {shm_name} block not found")
+
+    def destroySharedMemory(self):
+        if SHM_IMPORTED: 
+            for shm_name in self.SHM_NAMES:
+                if hasattr(self, shm_name):
+                    try:
+                        getattr(self,shm_name).close()
+                    except FileNotFoundError:
+                        info("DESTROY: Shared memory {shm_name} block not found")
+
+    def cleanup(self,destroy=False):
+        self.unlinkSharedMemory()
+        if destroy:
+            self.destroySharedMemory()
 
     def copyBuffers(self,buffers=["state","model","observer","remote","command"]):
         if self.rawStateBuffer is not None and "state" in buffers:

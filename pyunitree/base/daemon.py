@@ -41,15 +41,15 @@ class Daemon:
         self.handlerProc = Process(target=self.handler,daemon=True)
         self.updateRate = updateRate
         self.hasSharedState = False
-        self._processReady = RawValue("b",0)
+        self.sh_processRunning = RawValue("b",0)
 
     def handler(self):
         self.processInit()
         try:
-            self._processReady.value = 1
+            self.sh_processRunning.value = 1
             initial_time = perf_counter()
             tick = 0
-            while True:
+            while self.sh_processRunning.value:
                 actual_time = perf_counter() - initial_time
                 if actual_time - tick >= 1/self.updateRate or self.updateRate<0:
                     result = self.action()
@@ -67,10 +67,7 @@ class Daemon:
             exception = traceback.format_exception(type(e), e, e.__traceback__)
             info(f"Daemon process {self.name} was interrupted by an exception inside the handler \n \
                 Exception: \n {''.join(exception)}")
-
-
-
-
+        
     def initSharedStateArray(self,size,name,dataType=np.float32):
         self.hasSharedState = True
         self.sharedStateName = name
@@ -97,7 +94,7 @@ class Daemon:
     def start(self):
         self.preStart()
         self.handlerProc.start()
-        while self._processReady.value == 0:
+        while self.sh_processRunning.value == 0:
             sleep(0.01)
         info(f"Process {self.name} has started")
         self.onStart()
@@ -107,20 +104,22 @@ class Daemon:
     
     def stop(self):
         self.onStop()
-        self.handlerProc.terminate()
+        self.sh_processRunning.value = 0
+        self.handlerProc.join(timeout=1)
+        self.cleanup()
         info(f"Process {self.name} terminated")
 
-    def __del__(self):
-        if self.handlerProc.is_alive():
-            self.stop()
-            
+    def unlinkSharedMemory(self):       
         if self.hasSharedState == True and SHM_IMPORTED:
-            self.rawStateShm.close()
             try:
                 self.rawStateShm.unlink()
             except:
                 info(f"Process {self.name} failed to unlink shared_memory")
 
+    def cleanup(self):
+        if hasattr(self,"context"):
+            self.context.unlinkSharedMemory()
+        self.unlinkSharedMemory()
     
     def init(self):
         pass

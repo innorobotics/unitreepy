@@ -292,3 +292,8 @@ class GazeboInterface(Daemon):
         ode_config = get_physics().ode_config
         set_physics(time_step.data, max_update_rate.data, gravity, ode_config)
 
+    def resetPose(self):
+        rospy.ServiceProxy("/gazebo/reset_world",Empty)()
+
+    def stop(self):
+        self.cleanup()
