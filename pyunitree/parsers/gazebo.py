@@ -27,12 +27,29 @@ class GazeboMsgParser:
 
         return vector
 
+    def writeImuToBuffer(self,msg,buffer):
+        buffer[0] = msg.orientation.w
+        buffer[1] = msg.orientation.x
+        buffer[2] = msg.orientation.y
+        buffer[3] = msg.orientation.z
+
+        buffer[4] = msg.angular_velocity.x
+        buffer[5] = msg.angular_velocity.y
+        buffer[6] = msg.angular_velocity.z
+
+        buffer[7] = msg.linear_acceleration.x
+        buffer[8] = msg.linear_acceleration.y
+        buffer[9] = msg.linear_acceleration.z
+
     def vectorizeEeForce(self,msg):
         vector = [0]*3
         vector[0] = msg.wrench.force.x
         vector[1] = msg.wrench.force.y
         vector[2] = msg.wrench.force.z
         return vector
+
+    def writeFootForcesToBuffer(self,msg,buffer,idx):
+        buffer[10+idx] = msg.wrench.force.z
 
     def parseImuVector(self,vector):
         imu = IMU()

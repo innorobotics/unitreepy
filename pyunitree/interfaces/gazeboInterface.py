@@ -103,8 +103,6 @@ class GazeboInterface(Daemon):
         self.sharedStateSize = 39
         self.sharedStateType = np.float32
 
-        data = np.zeros(self.sharedStateSize, dtype=self.sharedStateType)
-
         self.stateIsValid = RawValue("b",False)
         self.rawRemotePtr = None
         self.initSharedStateArray(self.sharedStateSize,"RobotState")
@@ -120,7 +118,7 @@ class GazeboInterface(Daemon):
         self.motorSubs = [rospy.Subscriber(name+"/state", MotorState, self.motorVectorCallback,(idx)) 
                                                             for idx,name in enumerate(GazeboInterface.controllerNames)]
 
-        self.servoPublishers = [rospy.Publisher(controllerName+"/command", MotorCmd) 
+        self.servoPublishers = [rospy.Publisher(controllerName+"/command", MotorCmd,queue_size=0) 
                                                             for controllerName in GazeboInterface.controllerNames]
         if self.publishXPP:
             self.baseStateSub = rospy.Subscriber("/gazebo/link_states", LinkStates, self.baseStateCallback)
@@ -131,7 +129,6 @@ class GazeboInterface(Daemon):
         info("Unitreepy Gazebo listener: Attempting to receive initial position from Gazebo")
         while not self.stateIsValid.value:
             time.sleep(0.001)
-        self.moveStateToShared()
         info("Unitreepy Gazebo listener: Initial state received")
 
     def publishXPPCallback(self):
@@ -172,7 +169,7 @@ class GazeboInterface(Daemon):
                 self.publishXPPCallback()
             command = self.__shared.cmd
             self.time = rospy.get_time()-self.initTime
-            self.moveStateToShared()
+            self.rawStateBuffer[38] = self.time
             self.sendCommand(command)
             return True
         except BrokenPipeError:
@@ -214,12 +211,6 @@ class GazeboInterface(Daemon):
             command[motor_id * 5 + 4] = desired_torque[motor_id]
 
         return command
-
-    def moveStateToShared(self):
-        footforce = np.array([force[2] for force in self.footForces])
-        compressedState = np.hstack([self.imu,footforce,self.position,self.velocity,[self.time]])
-        #TODO:optimize buffer writitng without hstack
-        np.copyto(self.rawStateBuffer, compressedState)
     
     def baseStateCallback(self,msg):
         if self.baseIdx <0:
@@ -240,15 +231,18 @@ class GazeboInterface(Daemon):
             self.footPos[3*i:3*i+3] = (FootPositionInHipFrame(self.position[3*i:3*i+3],l_hip_sign=i)+HIP_OFFSETS[i])@mat+self.baseState[:3]
 
     def motorVectorCallback(self,msg,idx):
-        self.position[idx] = msg.q
-        self.velocity[idx] = msg.dq
+        self.rawStateBuffer[14+idx] = msg.q
+        self.rawStateBuffer[26+idx] = msg.dq
+        
+        #self.position[idx] = msg.q
+        #self.velocity[idx] = msg.dq
 
     def imuVectorCallback(self,msg):
-        self.imu = self.parser.vectorizeImuMsg(msg)
+        self.parser.writeImuToBuffer(msg,self.rawStateBuffer)
         self.stateIsValid.value = 1
 
     def footForceVectorCallback(self,msg,footIdx):
-        self.footForces[footIdx] = self.parser.vectorizeEeForce(msg)
+        self.parser.writeFootForcesToBuffer(msg,self.rawStateBuffer,footIdx)
 
     def send(self,cmd):
         self.__shared.cmd = cmd
