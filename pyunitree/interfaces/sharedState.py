@@ -252,18 +252,21 @@ class A1SharedState:
         footForce = self.GetFootForces(useCached)
         return footForce > self.FOOT_FORCE_THRESHOLD
     
-    def GetVelocities(self,useCached=False):
-        return self.getObserverBuffer(useCached).copy().reshape((2,3))
-
     def GetJacobians(self,useCached=False):
         return self.getModelBuffer(useCached)[:36].copy().reshape((12,3))
+   
+    def GetBaseStateEstimate(self,useCached=False):
+        return self.getObserverBuffer(useCached).copy().reshape((3,3))
 
     def GetBaseVelocity(self):
-        return self.GetVelocities()[0]
+        return self.GetBaseStateEstimate()[0]
     
     def GetComVelocity(self):
-        return self.GetVelocities()[1]
-
+        return self.GetBaseStateEstimate()[1]
+        
+    def GetBasePosition(self):
+        return self.GetBaseStateEstimate()[2]
+    
     def ComputeJacobian(self,idx):
         return self.GetJacobians()[idx*3:idx*3+3]
     
