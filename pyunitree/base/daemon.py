@@ -1,3 +1,4 @@
+from ast import parse
 from multiprocessing import Process
 from multiprocessing.sharedctypes import RawValue
 from time import perf_counter,sleep
@@ -5,6 +6,8 @@ from logging import info
 import sys
 import numpy as np
 import traceback
+
+from pyunitree.utils.exceptionParser import parseException
 
 try:
     from multiprocessing.shared_memory import SharedMemory
@@ -60,13 +63,9 @@ class Daemon:
         except KeyboardInterrupt:
             info(f"Process {self.name} was interrupted")
         except Exception as e:
-            exception_type, exception_object, exception_traceback = sys.exc_info()
-            filename = exception_traceback.tb_frame.f_code.co_filename
-            line_number = exception_traceback.tb_lineno
-            
-            exception = traceback.format_exception(type(e), e, e.__traceback__)
             info(f"Daemon process {self.name} was interrupted by an exception inside the handler \n \
-                Exception: \n {''.join(exception)}")
+                Exception: \n {parseException(e)}")
+            
         
     def initSharedStateArray(self,size,name,dataType=np.float32):
         self.hasSharedState = True
