@@ -35,7 +35,7 @@ while True:
     desired_angles = q_des
     desired_speeds = dq_des
 
-    command = robot_parser.build_command(desired_pos=desired_angles,
+    command = robot_parser.build_command(desired_position=desired_angles,
                                          desired_vel=desired_speeds,
                                          position_gains=position_gains,
                                          damping_gains=damping_gains)

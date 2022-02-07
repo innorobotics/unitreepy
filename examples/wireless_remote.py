@@ -15,7 +15,7 @@ while True:
     low_state = interface.receive()
 
     # parse the wireless remote state 
-    remote.set_state(low_state.wirelessRemote)
+    remote.set_state(low_state.wireless_remote)
     remote.update_state()
 
     print(f'\n{15*"/"} WIRELESS REMOTE STATE {15*"/"}')

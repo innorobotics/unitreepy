@@ -1,13 +1,10 @@
-from ast import parse
 from multiprocessing import Process
 from multiprocessing.sharedctypes import RawValue
 from time import perf_counter,sleep
 from logging import info
-import sys
 import numpy as np
-import traceback
 
-from pyunitree.utils.exceptionParser import parseException
+from pyunitree.utils.exception_parser import parse_exception
 
 try:
     from multiprocessing.shared_memory import SharedMemory
@@ -20,7 +17,7 @@ class Daemon:
     Class that is used to perform action() in a separate process
     A set of virtual methods has to be implemented on demand:
     
-    processInit():
+    process_init():
         to be executed in the handler process prior to the execution loop
     
     action():
@@ -29,32 +26,31 @@ class Daemon:
         returns True if the action is succeded otherwise returns False and the 
         handler process loop terminates
 
-    onStart()
+    on_start()
         to be executed in the main process after the handler process start() call
 
-    onStop()
+    on_stop()
         to be executed in the main process prior to the handler process stop() call
     '''
-
-    def __init__(self,updateRate=-1,name="Unnamed daemon"):
+    def __init__(self,update_rate=-1,name="Unnamed daemon"):
         """
         Negative update rate will cause the class to execute action at max update rate possible
         """
         self.name = name
-        self.handlerProc = Process(target=self.handler,daemon=True)
-        self.updateRate = updateRate
-        self.hasSharedState = False
-        self.sh_processRunning = RawValue("b",0)
+        self.handler_proc = Process(target=self.handler,daemon=True)
+        self.update_rate = update_rate
+        self.has_shared_state = False
+        self.__sh_process_running = RawValue("b",0)
 
     def handler(self):
-        self.processInit()
+        self.process_init()
         try:
-            self.sh_processRunning.value = 1
+            self.__sh_process_running.value = 1
             initial_time = perf_counter()
             tick = 0
-            while self.sh_processRunning.value:
+            while self.__sh_process_running.value:
                 actual_time = perf_counter() - initial_time
-                if actual_time - tick >= 1/self.updateRate or self.updateRate<0:
+                if actual_time - tick >= 1/self.update_rate or self.update_rate<0:
                     result = self.action()
                     tick = actual_time
                     if not result:
@@ -64,75 +60,75 @@ class Daemon:
             info(f"Process {self.name} was interrupted")
         except Exception as e:
             info(f"Daemon process {self.name} was interrupted by an exception inside the handler \n \
-                Exception: \n {parseException(e)}")
+                Exception: \n {parse_exception(e)}")
             
         
-    def initSharedStateArray(self,size,name,dataType=np.float32):
-        self.hasSharedState = True
-        self.sharedStateName = name
-        self.sharedStateSize = size
-        self.sharedStateType = dataType
+    def init_shared_state_array(self,size,name,data_type=np.float32):
+        self.has_shared_state = True
+        self.shared_state_name = name
+        self.shared_state_size = size
+        self.shared_state_type = data_type
 
-        data = np.zeros(self.sharedStateSize,dtype=dataType)
+        data = np.zeros(self.shared_state_size,dtype=data_type)
         
         if SHM_IMPORTED:
             try:
-                self.rawStateShm = SharedMemory(create=True, size=data.nbytes,name=name)
+                self.raw_state_shm = SharedMemory(create=True, size=data.nbytes,name=name)
             except FileExistsError:
-                self.rawStateShm = SharedMemory(name=name)
+                self.raw_state_shm = SharedMemory(name=name)
 
-            self.rawStatePtr =  self.rawStateShm.buf
+            self.raw_state_ptr =  self.raw_state_shm.buf
         else:
             from multiprocessing import RawArray
-            self.rawStatePtr = RawArray("f",self.sharedStateSize)
+            self.raw_state_ptr = RawArray("f",self.shared_state_size)
 
-        self.rawStateBuffer = np.frombuffer(self.rawStatePtr, dtype=self.sharedStateType)
+        self.raw_state_buffer = np.frombuffer(self.raw_state_ptr, dtype=self.shared_state_type)
     
-        np.copyto(self.rawStateBuffer, data)
+        np.copyto(self.raw_state_buffer, data)
 
     def start(self):
-        self.preStart()
-        self.handlerProc.start()
-        while self.sh_processRunning.value == 0:
+        self.pre_start()
+        self.handler_proc.start()
+        while self.__sh_process_running.value == 0:
             sleep(0.01)
         info(f"Process {self.name} has started")
-        self.onStart()
+        self.on_start()
 
-    def preStart(self):
+    def pre_start(self):
         pass
     
     def stop(self):
-        self.onStop()
-        self.sh_processRunning.value = 0
-        self.handlerProc.join(timeout=1)
+        self.on_stop()
+        self.__sh_process_running.value = 0
+        self.handler_proc.join(timeout=1)
         self.cleanup()
         info(f"Process {self.name} terminated")
 
-    def unlinkSharedMemory(self):       
-        if self.hasSharedState == True and SHM_IMPORTED:
+    def unlink_shared_memory(self):       
+        if self.has_shared_state == True and SHM_IMPORTED:
             try:
-                self.rawStateShm.unlink()
+                self.raw_state_shm.unlink()
             except:
                 info(f"Process {self.name} failed to unlink shared_memory")
 
     def cleanup(self):
         if hasattr(self,"context"):
-            self.context.unlinkSharedMemory()
-        self.unlinkSharedMemory()
+            self.context.unlink_shared_memory()
+        self.unlink_shared_memory()
     
     def init(self):
         pass
     
-    def processInit(self):
+    def process_init(self):
         pass
 
     def action(self):
         pass
 
-    def onStart(self):
+    def on_start(self):
         pass
 
-    def onStop(self):
+    def on_stop(self):
         pass
 
 

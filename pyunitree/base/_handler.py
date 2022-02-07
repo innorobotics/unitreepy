@@ -31,38 +31,38 @@ class RobotHandler(LowLevelParser, Daemon):
         self.__shared.command = self._zero_command
         self.__shared.process_is_working = False
 
-        self.highInterface = None
+        self.high_interface = None
         self.set_gains(position_gains=constants.POSITION_GAINS,
                        damping_gains=constants.DAMPING_GAINS)
 
         # Shared array init
-        self.initSharedStateArray(39, "RobotState")
-        self.initWirelessRemoteArray()
+        self.init_shared_state_array(39, "RobotState")
+        self.init_wireless_remote_array()
 
         self.__copy_state()
 
-    def initWirelessRemoteArray(self):
-        remoteByteSize=320
-        data = np.zeros(remoteByteSize,dtype=np.bytes_)
+    def init_wireless_remote_array(self):
+        remote_byte_size=320
+        data = np.zeros(remote_byte_size,dtype=np.bytes_)
         if SHM_IMPORTED:
             from multiprocessing.shared_memory import SharedMemory
             try:
-                self.rawRemoteShm = SharedMemory(create=True, size=remoteByteSize,name="WirelessRemote")
+                self.raw_remote_shm = SharedMemory(create=True, size=remote_byte_size,name="WirelessRemote")
             except FileExistsError:
-                self.rawRemoteShm = SharedMemory(name="WirelessRemote")
+                self.raw_remote_shm = SharedMemory(name="WirelessRemote")
 
-            self.rawRemotePtr =  self.rawRemoteShm.buf
+            self.raw_remote_ptr =  self.raw_remote_shm.buf
         else:
             from multiprocessing import RawArray
-            self.rawRemotePtr = RawArray("b",remoteByteSize)
+            self.raw_remote_ptr = RawArray("b",remote_byte_size)
 
-        self.rawRemoteBuffer = np.frombuffer(self.rawRemotePtr, dtype=np.float32)
-        np.copyto(self.rawRemoteBuffer, np.frombuffer(data, dtype=np.float32))
+        self.raw_remote_ptr = np.frombuffer(self.raw_remote_ptr, dtype=np.float32)
+        np.copyto(self.raw_remote_ptr, np.frombuffer(data, dtype=np.float32))
 
-    def processInit(self):
+    def process_init(self):
         self.init_time = perf_counter()
 
-    def onStart(self):
+    def on_start(self):
         print('Robot moving to initial position...')
 
         # /////////// REWRITE THIS ////////////////
@@ -112,14 +112,14 @@ class RobotHandler(LowLevelParser, Daemon):
         return low_state
 
     def __copy_state(self):
-        compressedState = np.hstack([self.quaternion, self.gyro, self.accelerometer,
+        compressed_state = np.hstack([self.quaternion, self.gyro, self.accelerometer,
                                     self.foot_force, self.joint_angles, self.joint_speed, [self.tick/1000]])
 
         if self.quaternion is None:
             return
 
-        np.copyto(self.rawRemoteBuffer,np.frombuffer(np.array(self.wirelessRemote),dtype=np.float32))
-        np.copyto(self.rawStateBuffer, compressedState)
+        np.copyto(self.raw_remote_ptr,np.frombuffer(np.array(self.wireless_remote),dtype=np.float32))
+        np.copyto(self.raw_state_buffer, compressed_state)
 
 
     def __send_command(self, command):
@@ -141,7 +141,7 @@ class RobotHandler(LowLevelParser, Daemon):
                    desired_velocity,
                    desired_torque):
 
-        command = self.build_command(desired_pos=desired_position,
+        command = self.build_command(desired_position=desired_position,
                                      desired_vel=desired_velocity,
                                      desired_torque=desired_torque,
                                      position_gains=self.position_gains,
@@ -165,7 +165,7 @@ class RobotHandler(LowLevelParser, Daemon):
 
     def set_angles(self, desired_position):
         '''Build the command from desired position'''
-        command = self.build_command(desired_pos=desired_position,
+        command = self.build_command(desired_position=desired_position,
                                      position_gains=self.position_gains,
                                      damping_gains=self.damping_gains)
         self.__shared.command = command
@@ -182,7 +182,7 @@ class RobotHandler(LowLevelParser, Daemon):
 
     def move_to(self, desired_position, terminal_time=3):
         """Move to desired position with poitn to point """
-        initial_position = np.copy(self.rawStateBuffer[14:26])
+        initial_position = np.copy(self.raw_state_buffer[14:26])
         init_time = perf_counter()
         actual_time = 0
 

@@ -54,7 +54,7 @@ class LowLevelParser:
         # Foot force estimates
         self.foot_force = zeros(NUM_LEGS)
         self.foot_force_est = zeros(NUM_LEGS)
-        self.wirelessRemote = zeros(320,dtype=bytes_)
+        self.wireless_remote = zeros(320,dtype=bytes_)
         # IMU states
         self.quaternion = None
         self.gyro = None
@@ -82,7 +82,7 @@ class LowLevelParser:
         self.foot_force_est = low_state.footForceEst
         # get controller ticker
         self.tick = low_state.tick
-        self.wirelessRemote = low_state.wirelessRemote
+        self.wireless_remote = low_state.wireless_remote
 
     # def get_motor_states(self):
     #     motor_states = self.joint_angles, self.joint_speed

@@ -1,5 +1,5 @@
 from pyunitree.base._handler import RobotHandler
-from pyunitree.interfaces.gazeboInterface import GazeboInterface
+from pyunitree.interfaces.gazebo_interface import GazeboInterface
 from pyunitree.robots.a1.constants import STAND_ANGLES,INIT_ANGLES
 import numpy as np
 import time
@@ -25,13 +25,13 @@ desired_angles = np.array(STAND_ANGLES)
 robot.move_to(desired_angles)
 
 initial_time = robot.state.time
-currentTime = 0
+current_time = 0
 
 while robot.state.time - initial_time < 5:
     
-    desired_angles = np.array(STAND_ANGLES)*(1 + 0.25 * math.sin(3*currentTime))
+    desired_angles = np.array(STAND_ANGLES)*(1 + 0.25 * math.sin(3*current_time))
     robot.set_angles(desired_angles)
-    currentTime = time.perf_counter()
+    current_time = time.perf_counter()
     
 robot.move_to_init()
 

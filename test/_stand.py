@@ -13,7 +13,7 @@ damping_gains = DAMPING_GAINS
 
 
 while True:
-    command = robot_parser.build_command(desired_pos=desired_angles,
+    command = robot_parser.build_command(desired_position=desired_angles,
                                          position_gains=position_gains,
                                          damping_gains=damping_gains)
 

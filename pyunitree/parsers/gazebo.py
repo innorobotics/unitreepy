@@ -9,7 +9,7 @@ class GazeboMsgParser:
     def __init__(self):
         pass
     
-    def vectorizeImuMsg(self,msg):
+    def vectorize_imu_msg(self,msg):
         vector = [0]*10
 
         vector[0] = msg.orientation.w
@@ -27,7 +27,7 @@ class GazeboMsgParser:
 
         return vector
 
-    def writeImuToBuffer(self,msg,buffer):
+    def write_imu_to_buffer(self,msg,buffer):
         buffer[0] = msg.orientation.w
         buffer[1] = msg.orientation.x
         buffer[2] = msg.orientation.y
@@ -41,17 +41,17 @@ class GazeboMsgParser:
         buffer[8] = msg.linear_acceleration.y
         buffer[9] = msg.linear_acceleration.z
 
-    def vectorizeEeForce(self,msg):
+    def vectorize_ee_force(self,msg):
         vector = [0]*3
         vector[0] = msg.wrench.force.x
         vector[1] = msg.wrench.force.y
         vector[2] = msg.wrench.force.z
         return vector
 
-    def writeFootForcesToBuffer(self,msg,buffer,idx):
+    def write_foot_forces_to_buffer(self,msg,buffer,idx):
         buffer[10+idx] = msg.wrench.force.z
 
-    def parseImuVector(self,vector):
+    def parse_imu_vector(self,vector):
         imu = IMU()
         imu.quaternion[0] = vector[0]
         imu.quaternion[1] = vector[1]
@@ -67,11 +67,11 @@ class GazeboMsgParser:
         imu.accelerometer[2] = vector[9]
         return imu
 
-    def parseEeForceVector(self,vector):
-        eeForce = Cartesian()
-        eeForce.x = vector[0]
-        eeForce.y = vector[1]
-        eeForce.z = vector[2]
+    def parse_ee_force_vector(self,vector):
+        ee_force = Cartesian()
+        ee_force.x = vector[0]
+        ee_force.y = vector[1]
+        ee_force.z = vector[2]
 
-        footForce = vector[2]
-        return eeForce , footForce   #Foot force is taken as it's z component
+        foot_force = vector[2]
+        return ee_force , foot_force   #Foot force is taken as it's z component

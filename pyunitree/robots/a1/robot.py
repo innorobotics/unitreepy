@@ -1,4 +1,4 @@
-def A1Robot(real=True, highLevel=False,publishXPP = True):
+def A1Robot(real=True, high_level=False,publish_xpp = True):
     if real:
         from legged_sdk import LowLevelInterface,HighLevelInterface
         from types import SimpleNamespace
@@ -17,13 +17,12 @@ def A1Robot(real=True, highLevel=False,publishXPP = True):
         robot.transmitter = interface.send
         robot.receiver = interface.receive
 
-        if highLevel:
-            robot.highInterface = HighLevelInterface()   
+        if high_level:
+            robot.high_interface = HighLevelInterface()   
 
     else:
-        from pyunitree.interfaces.gazeboInterface import GazeboInterface
+        from pyunitree.interfaces.gazebo_interface import GazeboInterface
 
-        robot = GazeboInterface(publishXPP=publishXPP)
-        robot.slowDownSim()
+        robot = GazeboInterface(publish_xpp=publish_xpp)
         
     return robot

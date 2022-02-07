@@ -31,7 +31,7 @@ def leg_kinematics(motor_angles, link_lengths, base_position):
 
     return position, jacobian, rotation_matrix
 
-def QuaternionToEulerMatrix(q):
+def quat_to_euler_matrix(q):
     x = q[0]
     y = q[1]
     z = q[2]
@@ -41,7 +41,7 @@ def QuaternionToEulerMatrix(q):
                         [ x*y+w*z  , 0.5-x**2-z**2, y*z-w*x],
                         [ x*z-w*y  , y*z+w*x  , 0.5-x**2-y**2]])
 
-def EulerFromQuaternion(quat):
+def euler_from_quat(quat):
         x,y,z,w = quat
         t0 = +2.0 * (w * x + y * z)
         t1 = +1.0 - 2.0 * (x * x + y * y)
@@ -58,7 +58,7 @@ def EulerFromQuaternion(quat):
      
         return [roll_x, pitch_y, yaw_z]
 
-def FootPositionInHipFrame(angles, l_hip_sign=1):
+def foot_position_hip_frame(angles, l_hip_sign=1):
     theta_ab, theta_hip, theta_knee = angles[0], angles[1], angles[2]
 
     l_up = 0.2
@@ -80,7 +80,7 @@ def FootPositionInHipFrame(angles, l_hip_sign=1):
     off_z = theta_ab_sin * off_y_hip + theta_ab_cos * off_z_hip
     return [off_x, off_y, off_z]
     
-def FootPositionInHipFrameToJointAngle(foot_position, l_hip_sign=1):
+def foot_pos_hip_frame_to_joint_angle(foot_position, l_hip_sign=1):
     l_up = 0.2
     l_low = 0.2
     l_hip = HIP_COEFFICIENT * ((-1)**(l_hip_sign + 1))
@@ -98,13 +98,13 @@ def FootPositionInHipFrameToJointAngle(foot_position, l_hip_sign=1):
     theta_ab = math.atan2(s1, c1)
     return [theta_ab, theta_hip, theta_knee]
 
-def ComputeMotorAnglesFromFootLocalPosition(leg_id,
+def motor_angles_from_foot_local_position(leg_id,
                                                 foot_local_position):
                                                 
         joint_position_idxs = list(range(leg_id * 3,leg_id * 3 + 3))
 
         try:
-            joint_angles = FootPositionInHipFrameToJointAngle(
+            joint_angles = foot_pos_hip_frame_to_joint_angle(
                 foot_local_position - HIP_OFFSETS[leg_id],
                 l_hip_sign=leg_id)
         except:
@@ -113,7 +113,7 @@ def ComputeMotorAnglesFromFootLocalPosition(leg_id,
 
         return joint_position_idxs, joint_angles.tolist()
 
-def AnalyticalLegJacobian(leg_angles, sign):
+def analytical_leg_jacobian(leg_angles, sign):
     """
     Computes the analytical Jacobian.
     Args:
@@ -141,7 +141,7 @@ def AnalyticalLegJacobian(leg_angles, sign):
         t_eff) / l_eff + l_eff * np.sin(t_eff) * np.cos(t1) / 2
     return J
 
-def CompactAnalyticalJacobian(leg_angles, sign):
+def compact_analytical_leg_jacobian(leg_angles, sign):
     """
     Computes the analytical Jacobian in a single vector
     Args:
@@ -183,7 +183,7 @@ def CompactAnalyticalJacobian(leg_angles, sign):
     leg_id are in range(4) for [FR LR RR RL] 
     """
 
-def AnglesFromPositionInHipFrame(leg_id, foot_position):
+def angles_from_position_hip_frame(leg_id, foot_position):
     l_up = LEG_LENGTH[1]
     l_low = LEG_LENGTH[2]
     l_hip = LEG_LENGTH[0] * ((-1)**(leg_id + 1))
@@ -209,7 +209,7 @@ def AnglesFromPositionInHipFrame(leg_id, foot_position):
 
     return [theta_ab, theta_hip, theta_knee]
 
-def PositionInHipFrameFromAngles(leg_id, angles):
+def position_hip_frame_from_angles(leg_id, angles):
     theta_ab, theta_hip, theta_knee = ANGLE_DIRECTION[leg_id,0] * angles[0], \
                                       ANGLE_DIRECTION[leg_id,1] * angles[1], \
                                       ANGLE_DIRECTION[leg_id,2] * angles[2]
@@ -233,19 +233,19 @@ def PositionInHipFrameFromAngles(leg_id, angles):
     off_z = theta_ab_sin * off_y_hip + theta_ab_cos * off_z_hip
     return [off_x, off_y, off_z]
 
-def PositionInBaseFrameFromAngles(leg_id, angles):
-    return PositionInHipFrameFromAngles(leg_id, angles) + BASE_TO_HIPS[leg_id]
+def position_base_frame_from_angles(leg_id, angles):
+    return position_hip_frame_from_angles(leg_id, angles) + BASE_TO_HIPS[leg_id]
 
-def PositionInCOMFrameFromAngles(leg_id, angles):
-    return PositionInHipFrameFromAngles(leg_id, angles) + COM_TO_HIPS[leg_id]
+def position_com_frame_from_angles(leg_id, angles):
+    return position_hip_frame_from_angles(leg_id, angles) + COM_TO_HIPS[leg_id]
 
-def AnglesFromPositionInBaseFrame(leg_id, foot_position):
-    return AnglesFromPositionInHipFrame(leg_id, foot_position - BASE_TO_HIPS[leg_id])
+def angles_from_position_in_base_frame(leg_id, foot_position):
+    return angles_from_position_hip_frame(leg_id, foot_position - BASE_TO_HIPS[leg_id])
 
-def AnglesFromPositionInCOMFrame(leg_id, foot_position):
-    return AnglesFromPositionInHipFrame(leg_id, foot_position - COM_TO_HIPS[leg_id])
+def angles_from_position_in_com_frame(leg_id, foot_position):
+    return angles_from_position_hip_frame(leg_id, foot_position - COM_TO_HIPS[leg_id])
 
-def ComputeJacobian(leg_id, angles):
+def compute_jacobian(leg_id, angles):
     """
     Computes the analytical Jacobian in a single vector
     Args:
