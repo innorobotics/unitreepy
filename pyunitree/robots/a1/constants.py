@@ -105,4 +105,40 @@ COM_TO_HIPS = np.array([[0.1805, -0.047, 0.], [0.1805, 0.047, 0.],
                         ])+ COM_OFFSET
 ANGLE_DIRECTION = np.ones((4,3)) # +1 means rotation is around original X or Y axes
 
+#original motion imitation
+MPC_BODY_MASS = 108 / 9.8
+MPC_BODY_INERTIA = np.array((0.24, 0, 0, 0, 0.80, 0, 0, 0, 1.00))
 
+# This is actually default foot positions in robot CS
+DEFAULT_HIP_POSITIONS = (
+    (0.17, -0.135, 0),
+    (0.17, 0.135, 0),
+    (-0.195, -0.135, 0),
+    (-0.195, 0.135, 0),
+)
+
+'''
+MPC_BODY_MASS = 13.52
+MPC_BODY_INERTIA = np.array((0.032, 0, 0, 0, 0.283, 0, 0, 0, 0.308))
+_DEFAULT_HIP_POSITIONS = (
+    (0.18, -0.14, 0),
+    (0.18, 0.14, 0),
+    (-0.18, -0.14, 0),
+    (-0.18, 0.14, 0),
+)
+
+_DEFAULT_HIP_POSITIONS = (
+    (0.1805, -0.047, 0),
+    (0.1805, 0.047, 0),
+    (-0.1805, -0.047, 0),
+    (-0.1805, 0.047, 0),
+)
+
+'''
+
+KPS = POSITION_GAINS
+KDS = DAMPING_GAINS
+
+MPC_BODY_HEIGHT = 0.24
+MPC_VELOCITY_MULTIPLIER = 0.5
+FOOT_FORCE_THRESHOLD = 10

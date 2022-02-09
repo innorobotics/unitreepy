@@ -2,52 +2,14 @@ from logging import info
 import numpy as np
 
 from pyunitree.utils.kinematics import euler_from_quat,quat_to_euler_matrix
-from pyunitree.robots.a1.constants import POSITION_GAINS,DAMPING_GAINS
+from pyunitree.robots.a1.constants import POSITION_GAINS,DAMPING_GAINS,FOOT_FORCE_THRESHOLD,DEFAULT_HIP_POSITIONS
 from pyunitree.base.daemon import SHM_IMPORTED
 from pyunitree.parsers.remote import WirelessRemote
 
 
 class A1SharedState:
-    #original motion imitation
-    MPC_BODY_MASS = 108 / 9.8
-    MPC_BODY_INERTIA = np.array((0.24, 0, 0, 0, 0.80, 0, 0, 0, 1.00))
-    SHM_NAMES = ['raw_state_shm','raw_observer_shm','raw_model_shm','raw_remote_shm','raw_command_shm']
-    # This is actually default foot positions in robot CS
-    _DEFAULT_HIP_POSITIONS = (
-        (0.17, -0.135, 0),
-        (0.17, 0.135, 0),
-        (-0.195, -0.135, 0),
-        (-0.195, 0.135, 0),
-    )
-    
-    '''
-    MPC_BODY_MASS = 13.52
-    MPC_BODY_INERTIA = np.array((0.032, 0, 0, 0, 0.283, 0, 0, 0, 0.308))
-    _DEFAULT_HIP_POSITIONS = (
-        (0.18, -0.14, 0),
-        (0.18, 0.14, 0),
-        (-0.18, -0.14, 0),
-        (-0.18, 0.14, 0),
-    )
-
-    _DEFAULT_HIP_POSITIONS = (
-        (0.1805, -0.047, 0),
-        (0.1805, 0.047, 0),
-        (-0.1805, -0.047, 0),
-        (-0.1805, 0.047, 0),
-    )
-
-    '''
-
-    
-    KPS = POSITION_GAINS
-    KDS = DAMPING_GAINS
-
-    MPC_BODY_HEIGHT = 0.24
-    MPC_VELOCITY_MULTIPLIER = 0.5
-    FOOT_FORCE_THRESHOLD = 10
-    
     DATA_TYPE = np.float32
+    SHM_NAMES = ['raw_state_shm','raw_observer_shm','raw_model_shm','raw_remote_shm','raw_command_shm']
     """
     self.raw_state_buffer
      quaternion  |4|
@@ -238,17 +200,17 @@ class A1SharedState:
         return self.get_model_buffer(use_cached)[36:].copy().reshape((4,3))
         
     def get_hip_positions_base_frame(self):
-        return self._DEFAULT_HIP_POSITIONS
+        return DEFAULT_HIP_POSITIONS
 
     def get_motor_position_gains(self):
-        return self.KPS
+        return POSITION_GAINS
 
     def get_motor_velocity_gains(self):
-        return self.KDS
+        return DAMPING_GAINS
 
     def get_foot_contacts(self,use_cached=False):
         foot_force = self.get_foot_forces(use_cached)
-        return foot_force > self.FOOT_FORCE_THRESHOLD
+        return foot_force > FOOT_FORCE_THRESHOLD
     
     def get_jacobians(self,use_cached=False):
         return self.get_model_buffer(use_cached)[:36].copy().reshape((12,3))
