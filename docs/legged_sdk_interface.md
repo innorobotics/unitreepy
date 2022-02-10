@@ -1,6 +1,6 @@
 # The Legged SDK Interface
 
-You may use this package to interface directly with robot without any additional parsers by invoking `pyunitree.legged_sdk`, this may be done in both high and low levels.
+You may use this package to interface directly with robot without any additional parsers by invoking `unitreepy.legged_sdk`, this may be done in both high and low levels.
 
 ## High Level 
 
@@ -10,7 +10,7 @@ The following will send the zero high level command to the robot (robot will hol
 
 
 ```python
-from pyunitree.legged_sdk import HighLevelInterface
+from unitreepy.legged_sdk import HighLevelInterface
 
 high_interface = HighLevelInterface()
 high_command = 10*[0]
@@ -58,7 +58,7 @@ The robot reply with the following state:
 | `state.wirelessRemote`    | wireless remote   | the state of wireless remote                                                          |
 
 ```python
-from pyunitree.legged_sdk import HighLevelInterface
+from unitreepy.legged_sdk import HighLevelInterface
 from numpy import zeros, rad2deg
 from time import perf_counter
 
@@ -82,7 +82,7 @@ while actual_time < terminal_time:
 ### Low Level Command
 The following will send the zero command in low level mode: 
 ```python
-from pyunitree.legged_sdk import LowLevelInterface
+from unitreepy.legged_sdk import LowLevelInterface
 
 message = "PAY ATTENTION: ZERO TORQUES WILL BE SENT. TO PREVENT ROBOT FROM FALLING USE THE RACK"
 input(message + 'Press Enter to continue...')

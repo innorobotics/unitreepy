@@ -10,12 +10,12 @@ from sensor_msgs.msg import Imu
 from geometry_msgs.msg import WrenchStamped
 from unitree_legged_msgs.msg import MotorCmd,MotorState
 
-from pyunitree.utils.kinematics import foot_position_hip_frame, quat_to_euler_matrix
-from pyunitree.parsers.gazebo import GazeboMsgParser
-from pyunitree.robots.a1.constants import HIP_OFFSETS
-from pyunitree.robots.a1.constants import INIT_ANGLES,POSITION_GAINS,DAMPING_GAINS
-from pyunitree.utils._pos_profiles import p2p_cos_profile
-from pyunitree.base.daemon import Daemon
+from unitreepy.utils.kinematics import foot_position_hip_frame, quat_to_euler_matrix
+from unitreepy.parsers.gazebo import GazeboMsgParser
+from unitreepy.robots.a1.constants import HIP_OFFSETS
+from unitreepy.robots.a1.constants import INIT_ANGLES,POSITION_GAINS,DAMPING_GAINS
+from unitreepy.utils._pos_profiles import p2p_cos_profile
+from unitreepy.base.daemon import Daemon
 
 from multiprocessing import Manager
 from multiprocessing.sharedctypes import RawValue
@@ -99,12 +99,11 @@ class GazeboInterface(Daemon):
         self.__shared = Manager().Namespace()
         self.__shared.cmd = [0]*60
 
-        self.shared_state_size = 39
         self.shared_state_type = np.float32
 
         self.state_is_valid = RawValue("b",False)
         self.raw_remote_ptr = None
-        self.init_shared_state_array(self.shared_state_size,"RobotState")
+        self.init_shared_state_array(39,"a1.robot_state")
 
     def process_init(self):
         self.node = rospy.init_node('unitreepy_node')
@@ -287,6 +286,3 @@ class GazeboInterface(Daemon):
 
     def reset_pose(self):
         rospy.ServiceProxy("/gazebo/reset_world",Empty)()
-
-    def stop(self):
-        self.cleanup()

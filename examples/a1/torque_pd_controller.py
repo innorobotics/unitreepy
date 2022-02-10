@@ -1,5 +1,5 @@
-from pyunitree.robots.a1 import robot
-from pyunitree.robots.a1.constants import STAND_ANGLES, NUM_MOTORS
+from unitreepy.robots.a1 import robot
+from unitreepy.robots.a1.constants import STAND_ANGLES, NUM_MOTORS
 from numpy import array, sin, cos, zeros, ones
 
 # start robot process and move to initial position

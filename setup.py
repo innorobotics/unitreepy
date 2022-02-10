@@ -4,7 +4,7 @@ import setuptools
 #     long_description = fh.read()
 
 setuptools.setup(
-    name="pyunitree", 
+    name="unitreepy", 
     version="0.0.1",
     author="Simeon Nedelchev",
     author_email="simkaned@gmail.com",

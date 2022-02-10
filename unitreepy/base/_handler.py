@@ -4,12 +4,13 @@ from time import perf_counter, sleep
 from multiprocessing import Process, Manager, RawArray
 from types import SimpleNamespace
 
-from pyunitree.base.daemon import Daemon
+from unitreepy.base.daemon import Daemon
 
 from ..parsers.low_level import LowLevelParser
 from ..utils._pos_profiles import p2p_cos_profile
 from ..robots._default.constants import POSITION_GAINS, DAMPING_GAINS, INIT_ANGLES
-from .daemon import Daemon,SHM_IMPORTED
+from .daemon import Daemon
+from unitreepy.interfaces.shared_state import SHM_IMPORTED
 
 CONSTANTS = SimpleNamespace()
 
@@ -36,27 +37,17 @@ class RobotHandler(LowLevelParser, Daemon):
                        damping_gains=constants.DAMPING_GAINS)
 
         # Shared array init
-        self.init_shared_state_array(39, "RobotState")
+        self.init_shared_state_array(39, "a1.robot_state")
         self.init_wireless_remote_array()
 
         self.__copy_state()
 
     def init_wireless_remote_array(self):
+        name = "a1.wireless_remote"
         remote_byte_size=320
         data = np.zeros(remote_byte_size,dtype=np.bytes_)
-        if SHM_IMPORTED:
-            from multiprocessing.shared_memory import SharedMemory
-            try:
-                self.raw_remote_shm = SharedMemory(create=True, size=remote_byte_size,name="WirelessRemote")
-            except FileExistsError:
-                self.raw_remote_shm = SharedMemory(name="WirelessRemote")
-
-            self.raw_remote_ptr =  self.raw_remote_shm.buf
-        else:
-            from multiprocessing import RawArray
-            self.raw_remote_ptr = RawArray("b",remote_byte_size)
-
-        self.raw_remote_ptr = np.frombuffer(self.raw_remote_ptr, dtype=np.float32)
+        self.shared_state.register_shared_memory(name,remote_byte_size,np.bytes_)
+        self.raw_remote_ptr = np.frombuffer(self.shared_state[name], dtype=np.float32)
         np.copyto(self.raw_remote_ptr, np.frombuffer(data, dtype=np.float32))
 
     def process_init(self):

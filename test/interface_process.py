@@ -1,5 +1,5 @@
-from pyunitree.legged_sdk import HighLevelInterface
-from pyunitree.__interface import Interface
+from unitreepy.legged_sdk import HighLevelInterface
+from unitreepy.__interface import Interface
 import numpy as np
 from time import perf_counter
 

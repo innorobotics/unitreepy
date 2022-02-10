@@ -1,5 +1,5 @@
 from legged_sdk import LowLevelInterface
-from pyunitree.parsers.remote import WirelessRemote
+from unitreepy.parsers.remote import WirelessRemote
 from numpy import zeros
 from time import perf_counter
 

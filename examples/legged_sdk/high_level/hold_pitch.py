@@ -1,4 +1,4 @@
-from pyunitree.legged_sdk import HighLevelInterface
+from unitreepy.legged_sdk import HighLevelInterface
 from numpy import zeros, rad2deg
 from time import perf_counter
 
