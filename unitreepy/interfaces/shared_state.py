@@ -59,7 +59,8 @@ class SharedState:
         """
         if name in self.shms.keys():
             logging.error(f"unitreepy: Attempting to register existing shared memory name : {str(name)}")
-
+            return
+            
         str_dtype = None
         
         if dtype == np.float32:
