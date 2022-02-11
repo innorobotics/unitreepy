@@ -1,6 +1,6 @@
-from pyunitree.base._handler import RobotHandler
-from pyunitree.interfaces.gazebo_interface import GazeboInterface
-from pyunitree.robots.a1.constants import STAND_ANGLES,INIT_ANGLES
+from unitreepy.base._handler import RobotHandler
+from unitreepy.interfaces.gazebo_interface import GazeboInterface
+from unitreepy.robots.a1.constants import STAND_ANGLES,INIT_ANGLES
 import numpy as np
 import time
 import math

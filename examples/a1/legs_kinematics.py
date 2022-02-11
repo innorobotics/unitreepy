@@ -1,6 +1,6 @@
-from pyunitree.robots.a1 import robot
-from pyunitree.robots.a1.constants import STAND_ANGLES, LEG_NAMES, LEGS_BASES, LEG_LINKS_LENGTH
-from pyunitree.utils import leg_kinematics
+from unitreepy.robots.a1 import robot
+from unitreepy.robots.a1.constants import STAND_ANGLES, LEG_NAMES, LEGS_BASES, LEG_LINKS_LENGTH
+from unitreepy.utils import leg_kinematics
 import numpy as np
 
 robot.start()

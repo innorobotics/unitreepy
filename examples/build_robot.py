@@ -1,9 +1,9 @@
 # EXAMPLE HOW TO BUILD ROBOT FROM INTERFACE AND HANDLER
 
-from pyunitree.base._handler import RobotHandler
-from pyunitree.robots._build_robot import _build_robot
-from pyunitree.legged_sdk import LowLevelInterface
-from pyunitree.robots.a1.constants import POSITION_GAINS, DAMPING_GAINS, INIT_ANGLES, STAND_ANGLES
+from unitreepy.base._handler import RobotHandler
+from unitreepy.robots._build_robot import _build_robot
+from unitreepy.legged_sdk import LowLevelInterface
+from unitreepy.robots.a1.constants import POSITION_GAINS, DAMPING_GAINS, INIT_ANGLES, STAND_ANGLES
 from types import SimpleNamespace
 from numpy import array
 

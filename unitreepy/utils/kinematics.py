@@ -1,7 +1,7 @@
 import numpy as np
 import math
-from pyunitree.robots.a1.constants import HIP_OFFSETS,MOTOR_DIRECTION
-from pyunitree.robots.a1.constants import LEG_LENGTH, BASE_TO_HIPS, COM_TO_HIPS, ANGLE_DIRECTION
+from unitreepy.robots.a1.constants import HIP_OFFSETS,MOTOR_DIRECTION
+from unitreepy.robots.a1.constants import LEG_LENGTH, BASE_TO_HIPS, COM_TO_HIPS, ANGLE_DIRECTION
 
 #HIP_COEFFICIENT = 0.08505 #original motion imitation
 HIP_COEFFICIENT = 0.0838

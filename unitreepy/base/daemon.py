@@ -4,13 +4,8 @@ from time import perf_counter,sleep
 from logging import info
 import numpy as np
 
-from pyunitree.utils.exception_parser import parse_exception
-
-try:
-    from multiprocessing.shared_memory import SharedMemory
-    SHM_IMPORTED = True 
-except ModuleNotFoundError:
-    SHM_IMPORTED = False
+from unitreepy.utils.exception_parser import parse_exception
+from unitreepy.interfaces.shared_state import SharedState,SHM_IMPORTED
 
 class Daemon:
     '''
@@ -65,25 +60,10 @@ class Daemon:
         
     def init_shared_state_array(self,size,name,data_type=np.float32):
         self.has_shared_state = True
-        self.shared_state_name = name
-        self.shared_state_size = size
-        self.shared_state_type = data_type
-
-        data = np.zeros(self.shared_state_size,dtype=data_type)
-        
-        if SHM_IMPORTED:
-            try:
-                self.raw_state_shm = SharedMemory(create=True, size=data.nbytes,name=name)
-            except FileExistsError:
-                self.raw_state_shm = SharedMemory(name=name)
-
-            self.raw_state_ptr =  self.raw_state_shm.buf
-        else:
-            from multiprocessing import RawArray
-            self.raw_state_ptr = RawArray("f",self.shared_state_size)
-
-        self.raw_state_buffer = np.frombuffer(self.raw_state_ptr, dtype=self.shared_state_type)
-    
+        self.shared_state = SharedState()
+        self.shared_state.register_shared_memory(name,size,data_type)
+        data = np.zeros(size,dtype=data_type)
+        self.raw_state_buffer = self.shared_state[name]
         np.copyto(self.raw_state_buffer, data)
 
     def start(self):
@@ -104,17 +84,9 @@ class Daemon:
         self.cleanup()
         info(f"Process {self.name} terminated")
 
-    def unlink_shared_memory(self):       
-        if self.has_shared_state == True and SHM_IMPORTED:
-            try:
-                self.raw_state_shm.unlink()
-            except:
-                info(f"Process {self.name} failed to unlink shared_memory")
-
     def cleanup(self):
-        if hasattr(self,"context"):
-            self.context.unlink_shared_memory()
-        self.unlink_shared_memory()
+        if self.has_shared_state:
+            self.shared_state.cleanup()
     
     def init(self):
         pass

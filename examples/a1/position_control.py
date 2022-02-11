@@ -1,6 +1,6 @@
-from pyunitree.robots.a1.constants import POSITION_GAINS, DAMPING_GAINS, INIT_ANGLES, STAND_ANGLES
-from pyunitree.base._handler import RobotHandler
-from pyunitree.base.daemon import SHM_IMPORTED
+from unitreepy.robots.a1.constants import POSITION_GAINS, DAMPING_GAINS, INIT_ANGLES, STAND_ANGLES
+from unitreepy.base._handler import RobotHandler
+from unitreepy.interfaces.shared_state import SHM_IMPORTED
 from legged_sdk import LowLevelInterface
 from types import SimpleNamespace
 from numpy import array, sin
