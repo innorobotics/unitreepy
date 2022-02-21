@@ -1,7 +1,6 @@
 from gazebo_msgs.srv import SetPhysicsProperties, GetPhysicsProperties
 from gazebo_msgs.msg import LinkStates
 from geometry_msgs.msg import Vector3
-from xpp_msgs.msg import State6d,RobotStateJoint,StateLin3d, RobotStateCartesian
 from geometry_msgs.msg import Vector3
 from std_msgs.msg import Float64
 
@@ -119,6 +118,7 @@ class GazeboInterface(Daemon):
         self.servo_publishers = [rospy.Publisher(controller_name+"/command", MotorCmd,queue_size=0) 
                                                             for controller_name in GazeboInterface.controller_names]
         if self.publish_xpp:
+            from xpp_msgs.msg import State6d,RobotStateJoint,StateLin3d, RobotStateCartesian
             self.base_state_sub = rospy.Subscriber("/gazebo/link_states", LinkStates, self.base_state_callback)
             self.joint_publisher = rospy.Publisher("/xpp/joint_a1_des", RobotStateJoint,queue_size=10) 
             self.robot_publisher = rospy.Publisher("/xpp/state_des", RobotStateCartesian,queue_size=10) 

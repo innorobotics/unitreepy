@@ -1,4 +1,4 @@
-def A1Robot(real=True, high_level=False,publish_xpp = True):
+def A1Robot(real=True, high_level=False,publish_xpp = False):
     if real:
         from legged_sdk import LowLevelInterface,HighLevelInterface
         from types import SimpleNamespace
