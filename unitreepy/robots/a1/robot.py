@@ -1,5 +1,5 @@
-def A1Robot(real=True, high_level=False,publish_xpp = False):
-    if real:
+def A1Robot(real_robot=True, high_level=False,publish_xpp = False):
+    if real_robot:
         from legged_sdk import LowLevelInterface,HighLevelInterface
         from types import SimpleNamespace
         from unitreepy.base._handler import RobotHandler
